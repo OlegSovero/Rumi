@@ -32,6 +32,21 @@ type Borrador = {
 
 type Props = { childName: string };
 
+const FASES_GENERACION = [
+  'Entendiendo tu idea',
+  'Separando las acciones',
+  'Buscando pictogramas',
+  'Ordenando la rutina',
+];
+
+const PICTOGRAMAS_EN_ANALISIS = [
+  { id: 2309, etiqueta: 'camiseta' },
+  { id: 2565, etiqueta: 'pantalón' },
+  { id: 2298, etiqueta: 'calcetines' },
+  { id: 2622, etiqueta: 'zapatos' },
+  { id: 2475, etiqueta: 'mochila' },
+];
+
 export function TareasFamilia({ childName }: Props) {
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
@@ -213,6 +228,18 @@ function BorradorTarea({
   onCancelar: () => void;
   onGuardar: () => void;
 }) {
+  const [faseGeneracion, setFaseGeneracion] = useState(0);
+
+  useEffect(() => {
+    if (!borrador.pensando) return;
+    let fase = 0;
+    const timer = window.setInterval(() => {
+      fase = (fase + 1) % FASES_GENERACION.length;
+      setFaseGeneracion(fase);
+    }, 900);
+    return () => window.clearInterval(timer);
+  }, [borrador.pensando]);
+
   return (
     <div>
       <button className="btn btn-ghost btn-md volver-btn" onClick={onCancelar}>
@@ -242,9 +269,18 @@ function BorradorTarea({
           <div className="avatar-gemma">
             <Smiley size={24} color="#FFFFFF" weight="fill" />
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span className="texto-pensando">Dividiendo la tarea en pasos</span>
-            <span className="puntos-pensando">· · ·</span>
+          <div className="contenido-pensando">
+            <div className="pictogramas-analisis" aria-label="Pictogramas en análisis">
+              {PICTOGRAMAS_EN_ANALISIS.map((pictograma, index) => (
+                <div key={pictograma.id} className="pictograma-analisis" style={{ animationDelay: `${index * 120}ms` }}>
+                  <Pictogram id={pictograma.id} label={pictograma.etiqueta} size={34} rounded />
+                </div>
+              ))}
+            </div>
+            <div className="texto-fase-pensando">
+              <span className="texto-pensando">{FASES_GENERACION[faseGeneracion]}</span>
+              <span className="puntos-pensando">· · ·</span>
+            </div>
           </div>
         </div>
       )}

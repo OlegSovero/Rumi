@@ -79,7 +79,19 @@ export function SentenceStrip({ items, onDeleteLast, onSpeak, interpretation, in
                 )}
               </>
             ) : (
-              <div className="sentence-status">Buscando una forma de continuar...</div>
+              <>
+                <div className="sentence-status sentence-analysis-status">
+                  <CircleNotch className="sentence-loading-icon" size={16} weight="bold" />
+                  Relacionando tus pictogramas...
+                </div>
+                <div className="sentence-analysis-track" aria-label="Pictogramas en análisis">
+                  {items.map((item, index) => (
+                    <div key={`analysis-${item.key}`} className="sentence-analysis-item" style={{ animationDelay: `${index * 140}ms` }}>
+                      <Pictogram id={item.id} label={item.etiqueta} size={34} rounded />
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}

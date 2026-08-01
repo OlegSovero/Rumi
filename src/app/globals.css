@@ -426,6 +426,9 @@ button:disabled {
   margin-top: 2px;
 }
 .sentence-status { color: var(--ink-600); font-size: 13px; margin-top: 2px; }
+.sentence-analysis-status { display: flex; align-items: center; gap: 6px; }
+.sentence-analysis-track { display: flex; gap: 6px; margin-top: 8px; }
+.sentence-analysis-item { animation: pictograma-analisis 1.2s ease-in-out infinite; }
 .sentence-interpretation-ambiguous { background: #fff5df; }
 .sentence-interpretation-incomplete { background: #eef5ee; }
 .sentence-alternatives { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
@@ -977,9 +980,14 @@ button:disabled {
   width: 100%;
 }
 .burbuja-pensando { display: flex; align-items: center; gap: 12px; background: var(--teal-100); border-radius: 18px; padding: 14px; margin-top: 16px; }
+.contenido-pensando { flex: 1; min-width: 0; }
+.pictogramas-analisis { display: flex; align-items: center; gap: 6px; overflow: hidden; margin-bottom: 8px; }
+.pictograma-analisis { flex-shrink: 0; animation: pictograma-analisis 1.2s ease-in-out infinite; }
+.texto-fase-pensando { display: flex; gap: 8px; align-items: center; }
 .texto-pensando { font-family: var(--font-body); font-size: 15px; color: var(--ink-800); }
 .puntos-pensando { color: var(--teal-500); animation: pensando-pulso 0.8s ease-in-out infinite; }
 @keyframes pensando-pulso { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes pictograma-analisis { 0%, 100% { transform: translateY(2px); opacity: 0.55; } 50% { transform: translateY(-3px); opacity: 1; } }
 .burbuja-generado { display: flex; align-items: flex-start; gap: 10px; background: var(--success-100); border-radius: 18px; padding: 14px; margin: 16px 0; }
 .texto-generado { flex: 1; font-family: var(--font-body); font-size: 14px; line-height: 19px; color: var(--ink-800); margin-top: 2px; }
 .fila-paso {
