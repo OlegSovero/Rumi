@@ -1,6 +1,6 @@
 import type { ServicioIA, TareaGenerada } from './tipos';
 import { chatOllama, parsearJsonSeguro } from './ollamaCliente';
-import { PICTOGRAMA_POR_DEFECTO, sugerirPictograma, VOCABULARIO } from './vocabulario';
+import { PICTOGRAMA_POR_DEFECTO, quitarAcentos, sugerirPictograma, VOCABULARIO } from './vocabulario';
 import { servicioIAMock } from './servicioIAMock';
 
 // Implementación real: Gemma vía Ollama local (offline).
@@ -18,8 +18,13 @@ Reglas:
 - pictogramaId debe ser uno de estos IDs ARASAAC si encaja: ${IDS_VOCABULARIO}. Si no, usa ${PICTOGRAMA_POR_DEFECTO}.
 - No añadas texto fuera del JSON.`;
 
-const SISTEMA_FRASE = `Eres Rumi. Conviertes una secuencia de pictogramas (etiqueta) en una frase natural en español para un niño.
-Responde SOLO con la frase, sin comillas ni explicación.`;
+const SISTEMA_FRASE = `Eres Rumi, CAA para niños. Conviertes pictogramas en UNA frase natural en español.
+Reglas OBLIGATORIAS:
+- Debes conservar TODAS las palabras de la lista, en especial negaciones ("no"), "más", "yo", "quiero", "ayuda".
+- Puedes reordenar para que suene natural (ej. yo, quiero, no, ayuda → "Yo no quiero ayuda.").
+- NUNCA borres ni ignores "no" u otra palabra de la lista.
+- Frase corta, clara, para leer en voz alta.
+- Responde SOLO con la frase final, sin comillas ni explicación.`;
 
 const SISTEMA_PICTOS = `Eres Rumi. Dado un texto del niño o familia, eliges pictogramas ARASAAC.
 Responde SOLO JSON: {"ids":[numero,...]} usando solo estos IDs: ${IDS_VOCABULARIO}.
@@ -52,18 +57,43 @@ async function conFallback<T>(accion: () => Promise<T>, fallback: () => Promise<
   }
 }
 
+/** Si Gemma omite alguna etiqueta (p. ej. "no"), la frase no es válida. */
+function fraseConservaEtiquetas(secuencia: { etiqueta: string }[], frase: string): boolean {
+  const f = quitarAcentos(frase);
+  return secuencia.every((it) => {
+    const e = quitarAcentos(it.etiqueta.trim());
+    return !e || f.includes(e);
+  });
+}
+
+function fraseFallback(secuencia: { etiqueta: string }[]): string {
+  const partes = secuencia.map((it) => it.etiqueta.trim()).filter(Boolean);
+  if (partes.length === 0) return '';
+  const unidos = partes.join(' ');
+  const frase = unidos.charAt(0).toUpperCase() + unidos.slice(1);
+  return /[.!?¡¿]$/.test(frase) ? frase : `${frase}.`;
+}
+
 export const servicioIAOllama: ServicioIA = {
   async pictogramasAFrase(secuencia) {
     return conFallback(async () => {
-      const lista = secuencia.map((it) => it.etiqueta).join(', ');
+      const lista = secuencia.map((it) => it.etiqueta).join(' | ');
       const texto = await chatOllama({
         messages: [
           { role: 'system', content: SISTEMA_FRASE },
-          { role: 'user', content: `Pictogramas: ${lista}` },
+          {
+            role: 'user',
+            content: `Pictogramas en orden (incluye todos, sobre todo "no" si aparece):\n${lista}`,
+          },
         ],
-        temperature: 0.3,
+        temperature: 0.1,
       });
-      return texto || secuencia.map((it) => it.etiqueta).join(' ');
+      const limpio = texto.replace(/^["«]|["»]$/g, '').trim();
+      if (!limpio || !fraseConservaEtiquetas(secuencia, limpio)) {
+        console.warn('[Rumi IA] Gemma omitió pictogramas; usando frase de respaldo.', { limpio, secuencia });
+        return fraseFallback(secuencia);
+      }
+      return limpio;
     }, () => servicioIAMock.pictogramasAFrase(secuencia));
   },
 

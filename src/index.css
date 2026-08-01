@@ -455,6 +455,16 @@ button:disabled {
   transition: transform 0.1s;
 }
 .sentence-speak:active { transform: scale(0.94); }
+.sentence-speak:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+.icono-girando {
+  animation: icono-giro 0.9s linear infinite;
+}
+@keyframes icono-giro {
+  to { transform: rotate(360deg); }
+}
 
 /* ---------- RewardBloom ---------- */
 .reward-overlay {

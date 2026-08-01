@@ -8,6 +8,20 @@ Presentado para LimaGDG — Grupo: Los caza bombitas.
 
 Esta es una versión **web** de Rumi, pensada para que la demo del hackathon sea rápida de mostrar y explicar (se abre en cualquier navegador, sin instalar un development build en un teléfono). Es un puerto 1:1 de la app móvil construida en `mini-proyectos/rumi-demo` (Expo + React Native): mismo diseño, mismo vocabulario, misma lógica del servicio de IA.
 
+### Stack (esto NO es Next.js)
+
+| Capa | Tecnología |
+|---|---|
+| UI | **React 19** + TypeScript |
+| Bundler / dev server | **Vite 8** |
+| Rutas | `react-router-dom` (`HashRouter`) |
+| Estado | Zustand |
+| Datos | `localStorage` (sin base de datos remota) |
+| Voz | Web Speech API (`speechSynthesis`) |
+| IA | **Ollama local** (Gemma 4) vía proxy Vite → `localhost:11434` |
+
+**No hay backend propio ni Next.js.** El frontend llama a Ollama en tu PC. No hace falta API key para la demo local.
+
 Diferencias frente a la app móvil, todas por ser una demo web:
 
 | Móvil (rumi-demo) | Web (este repo) |
@@ -21,6 +35,11 @@ Diferencias frente a la app móvil, todas por ser una demo web:
 ## IA: Gemma 4 vía Ollama (local / offline)
 
 En la rama `feature/gemma4-ollama` el servicio de IA habla con **Ollama en tu máquina** (`localhost:11434`) detrás de la misma interfaz de 4 operaciones. Si Ollama no responde, cae al mock automáticamente.
+
+Usos de Gemma en la UI:
+
+1. **Familia → Tareas → Generar / Guardar** — pasos + ayudas de “No entiendo”.
+2. **Niño → Hablar → botón altavoz** — convierte pictogramas (`yo | quiero | no | ayuda`) en frase natural (“Yo no quiero ayuda.”) y la lee en voz alta. Si el modelo omite una palabra (p. ej. “no”), se usa un respaldo que conserva todas.
 
 ### Requisitos rápidos (hackathon)
 
@@ -81,8 +100,8 @@ En Vertex AI: Model Garden → Gemma 4 → endpoint → misma interfaz `Servicio
 
 ## Qué incluye
 
-- **Modo niño**: tablero de comunicación (núcleo de palabras + categorías por tinte Fitzgerald), y tareas paso a paso con refuerzo positivo y botón "no entiendo" (hint de Gemma).
-- **Modo familia**: editor de tableros, creación de tareas con IA (escribes la tarea, Gemma genera pasos + pictogramas), progreso, y ajustes con estado Ollama.
+- **Modo niño**: tablero de comunicación; al pulsar el altavoz Gemma articula la frase antes de leerla; tareas paso a paso con “no entiendo” (hint de Gemma).
+- **Modo familia**: editor de tableros, creación de tareas con IA (pasos + pictogramas + ayudas), progreso, y ajustes con estado Ollama.
 - Gesto "mantén pulsado" para entrar a modo familia desde la pantalla de selección.
 - Datos persistidos en `localStorage` del navegador (por dispositivo, sin sincronización).
 

@@ -33,6 +33,7 @@ export function PantallaNino() {
   const [cat, setCat] = useState<string | null>(null);
   const [items, setItems] = useState<ItemFrase[]>([]);
   const [premioTarea, setPremioTarea] = useState(false);
+  const [hablando, setHablando] = useState(false);
 
   const [conteoTableros, setConteoTableros] = useState<Record<string, number>>({});
   const [palabrasCategoria, setPalabrasCategoria] = useState<FilaPictograma[]>([]);
@@ -64,10 +65,15 @@ export function PantallaNino() {
   const onBorrarUltimo = () => setItems((prev) => prev.slice(0, -1));
 
   const onHablar = async () => {
-    if (items.length === 0) return;
-    const texto = await servicioIA.pictogramasAFrase(items);
-    hablar(texto);
-    registrarFrase(texto);
+    if (items.length === 0 || hablando) return;
+    setHablando(true);
+    try {
+      const texto = await servicioIA.pictogramasAFrase(items);
+      hablar(texto);
+      registrarFrase(texto);
+    } finally {
+      setHablando(false);
+    }
   };
 
   const tareaActiva = tareas.find((t) => t.id === tareaActivaId) ?? null;
@@ -109,7 +115,7 @@ export function PantallaNino() {
 
       {!tareaActivaId && vista === 'hablar' && (
         <div className="nino-seccion-tira">
-          <SentenceStrip items={items} onDeleteLast={onBorrarUltimo} onSpeak={onHablar} />
+          <SentenceStrip items={items} onDeleteLast={onBorrarUltimo} onSpeak={onHablar} hablando={hablando} />
         </div>
       )}
 
