@@ -2,7 +2,7 @@ name: Deploy Next.js to Cloud Run
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, main]
 
 env:
   PROJECT_ID: angelic-throne-502610-v3
