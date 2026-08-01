@@ -57,13 +57,13 @@ Para activar Vertex AI, usa `NEXT_PUBLIC_IA_PROVIDER=vertex` junto con `GOOGLE_C
 
 ## Proveedores de IA
 
-Rumi puede cambiar entre los proveedores implementados mediante `NEXT_PUBLIC_IA_PROVIDER`. La selección se hace en tiempo de build; no se cambian credenciales desde el navegador. MLX está documentado como alternativa local pendiente de integrar.
+Rumi puede cambiar entre los proveedores implementados mediante `NEXT_PUBLIC_IA_PROVIDER`. La selección se hace en tiempo de build; no se cambian credenciales desde el navegador.
 
 | Proveedor | Uso principal | Modelo de ejemplo | Runtime / endpoint | Requiere internet | Costo de inferencia | Configuración |
 | --- | --- | --- | --- | --- | --- | --- |
 | `mock` | Demo, CI y producción segura por defecto | Respuestas simuladas | Reglas locales | No | Sin costo de IA | `NEXT_PUBLIC_IA_PROVIDER=mock` |
 | `ollama` | Desarrollo local multiplataforma | `gemma4:e2b` | Ollama en `localhost:11434` | Solo para descargar el modelo | Sin costo de API; usa CPU/GPU local | `NEXT_PUBLIC_IA_PROVIDER=ollama` y `NEXT_PUBLIC_OLLAMA_MODEL=gemma4:e2b` |
-| `mlx` | Desarrollo local en Mac Apple Silicon | `mlx-community/gemma-4-e4b-it-4bit` | `mlx-vlm.server` en `localhost:11435` | Solo para descargar el modelo | Sin costo de API; consume recursos de tu Mac | Pendiente: `NEXT_PUBLIC_IA_PROVIDER=mlx` |
+| `mlx` | Desarrollo local en Mac Apple Silicon | `mlx-community/gemma-4-e4b-it-4bit` | `mlx-vlm.server` en `localhost:11435` | Solo para descargar el modelo | Sin costo de API; consume recursos de tu Mac | `NEXT_PUBLIC_IA_PROVIDER=mlx` |
 | `vertex` | Cloud Run y producción | Model ID aprobado por Google, por ejemplo Gemma o Gemini | Vertex AI mediante `/api/ai` | Sí | Consume créditos o billing de GCP | `NEXT_PUBLIC_IA_PROVIDER=vertex` + variables server-side |
 
 ### Recomendación
@@ -74,6 +74,24 @@ Rumi puede cambiar entre los proveedores implementados mediante `NEXT_PUBLIC_IA_
 - Usa `vertex` únicamente cuando tengas acceso aprobado al modelo y controles de billing configurados.
 
 MLX y Ollama son proveedores locales: no funcionan dentro de Cloud Run porque dependen de procesos que viven en tu computadora. Cloud Run usa `mock` o Vertex AI.
+
+### Probar con MLX desde `rumi-gemma-desktop-app`
+
+La aplicación desktop prepara Python, instala `mlx-vlm`, descarga Gemma y levanta un servidor compatible con OpenAI en `localhost:11435`. Rumi web se conecta a ese servidor mediante su proxy Next.js.
+
+1. Abre `/Users/milumon/Documents/Github/rumi-gemma-desktop-app`.
+2. Ejecuta la aplicación Electron y pulsa `Preparar Gemma` o inicia el modelo desde el modo cuidador.
+3. En la raíz de Rumi crea `.env.local`:
+
+```env
+NEXT_PUBLIC_IA_PROVIDER=mlx
+NEXT_PUBLIC_MLX_MODEL=mlx-community/gemma-4-e4b-it-4bit
+```
+
+4. En otra terminal, ejecuta `npm run dev` en Rumi.
+5. Abre `http://localhost:3000` y revisa `Familia > Ajustes > Asistente IA`.
+
+El panel debe mostrar `mlx` y `Servidor MLX local disponible`. Si cierras la aplicación desktop, Rumi vuelve al mock automáticamente.
 
 ### Vertex AI Y Costos
 

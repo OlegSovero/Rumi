@@ -7,6 +7,8 @@ const model = provider === 'vertex'
   ? process.env.VERTEX_AI_MODEL || 'not configured'
   : provider === 'ollama'
     ? process.env.NEXT_PUBLIC_OLLAMA_MODEL || 'gemma4:e2b'
+    : provider === 'mlx'
+      ? process.env.NEXT_PUBLIC_MLX_MODEL || 'mlx-community/gemma-4-e4b-it-4bit'
     : 'mock';
 
 export async function GET() {
@@ -23,6 +25,20 @@ export async function GET() {
       });
     } catch {
       return NextResponse.json({ provider, model, ready: false, detail: 'Ollama no responde en localhost:11434' });
+    }
+  }
+
+  if (provider === 'mlx') {
+    try {
+      const response = await fetch('http://127.0.0.1:11435/v1/models', { cache: 'no-store' });
+      return NextResponse.json({
+        provider,
+        model,
+        ready: response.ok,
+        detail: response.ok ? 'Servidor MLX local disponible' : 'MLX no responde en localhost:11435',
+      });
+    } catch {
+      return NextResponse.json({ provider, model, ready: false, detail: 'MLX no responde en localhost:11435' });
     }
   }
 

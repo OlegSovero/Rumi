@@ -1,6 +1,7 @@
 import type { ServicioIA, TareaGenerada } from './tipos';
 import { servicioIAMock } from './servicioIAMock';
 import { servicioIAOllama } from './servicioIAOllama';
+import { servicioIAMlx } from './servicioIAMlx';
 
 async function request<T>(body: Record<string, unknown>): Promise<T> {
   const response = await fetch('/api/ai', {
@@ -29,4 +30,6 @@ export const servicioIA = provider === 'vertex'
   ? servicioIAVertex
   : provider === 'ollama'
     ? servicioIAOllama
-    : servicioIAMock;
+    : provider === 'mlx'
+      ? servicioIAMlx
+      : servicioIAMock;
