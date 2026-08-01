@@ -1,9 +1,10 @@
 import type { ServicioIA, TareaGenerada } from './tipos';
-import { PICTOGRAMA_POR_DEFECTO, quitarAcentos, sugerirPictograma, VOCABULARIO } from './vocabulario';
+import { PICTOGRAMA_POR_DEFECTO, quitarAcentos, sugerirPictograma } from './vocabulario';
 import { chatMlx, parsearJsonMlx } from './mlxCliente';
 import { servicioIAMock } from './servicioIAMock';
+import { catalogoParaPrompt, PICTOGRAM_IDS } from '../data/pictogramCatalog';
 
-const IDS = VOCABULARIO.map(({ id }) => id).join(', ');
+const CATALOGO = catalogoParaPrompt();
 const FALLBACK = servicioIAMock;
 
 async function conFallback<T>(action: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
@@ -18,7 +19,7 @@ async function conFallback<T>(action: () => Promise<T>, fallback: () => Promise<
 function validarTarea(task: TareaGenerada): TareaGenerada | null {
   const pasos = (task.pasos ?? []).slice(0, 5).map((step) => ({
     instruccion: step.instruccion?.trim() || '',
-    pictogramaId: VOCABULARIO.some(({ id }) => id === step.pictogramaId)
+    pictogramaId: PICTOGRAM_IDS.has(step.pictogramaId)
       ? step.pictogramaId
       : sugerirPictograma(step.instruccion || ''),
   })).filter((step) => step.instruccion);
@@ -36,11 +37,11 @@ export const servicioIAMlx: ServicioIA = {
   fraseAPictogramas(texto) {
     return conFallback(async () => {
       const raw = await chatMlx([
-        { role: 'system', content: `Devuelve solo JSON con la forma {"ids":[numero,...]}. Usa únicamente estos IDs ARASAAC: ${IDS}. Máximo 6.` },
+        { role: 'system', content: `Devuelve solo JSON con la forma {"ids":[numero,...]}. Usa únicamente los IDs del catálogo siguiente. Máximo 6.\n${CATALOGO}` },
         { role: 'user', content: texto },
       ], { json: true });
       const parsed = parsearJsonMlx<{ ids?: number[] }>(raw);
-      const ids = (parsed?.ids ?? []).filter((id) => VOCABULARIO.some(({ id: validId }) => validId === id));
+      const ids = (parsed?.ids ?? []).filter((id) => PICTOGRAM_IDS.has(id));
       return ids.length ? ids : FALLBACK.fraseAPictogramas(texto);
     }, () => FALLBACK.fraseAPictogramas(texto));
   },
@@ -48,7 +49,7 @@ export const servicioIAMlx: ServicioIA = {
   descomponerTarea(texto) {
     return conFallback(async () => {
       const raw = await chatMlx([
-        { role: 'system', content: `Divide la tarea en 2 a 5 pasos breves. Devuelve solo JSON con {"etiqueta":"...","pasos":[{"instruccion":"...","pictogramaId":numero}]}. Usa IDs de esta lista: ${IDS}. Si no encaja, usa ${PICTOGRAMA_POR_DEFECTO}.` },
+        { role: 'system', content: `Divide la tarea en 2 a 5 pasos breves. Devuelve solo JSON con {"etiqueta":"...","pasos":[{"instruccion":"...","pictogramaId":numero}]}. Usa IDs del catálogo. Si no encaja, usa ${PICTOGRAMA_POR_DEFECTO}.\n${CATALOGO}` },
         { role: 'user', content: texto },
       ], { json: true });
       const parsed = parsearJsonMlx<TareaGenerada>(raw);

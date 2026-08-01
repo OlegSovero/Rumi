@@ -1,14 +1,15 @@
 import type { ServicioIA, TareaGenerada } from './tipos';
-import { PICTOGRAMA_POR_DEFECTO, quitarAcentos, sugerirPictograma, VOCABULARIO } from './vocabulario';
+import { PICTOGRAMA_POR_DEFECTO, quitarAcentos, sugerirPictograma } from './vocabulario';
 import { chatOllama, parsearJsonSeguro } from './ollamaCliente';
 import { servicioIAMock } from './servicioIAMock';
+import { catalogoParaPrompt, PICTOGRAM_IDS } from '../data/pictogramCatalog';
 
-const IDS_VOCABULARIO = VOCABULARIO.map(({ id }) => id).join(', ');
+const CATALOGO = catalogoParaPrompt();
 
 const SYSTEM_PROMPTS = {
   frase: 'Convierte pictogramas en una frase natural y breve en español. Conserva todas las palabras, especialmente no, más, yo y quiero. Responde solo con la frase.',
-  pictogramas: `Convierte el texto en JSON {"ids":[numero,...]}. Usa solo estos IDs ARASAAC: ${IDS_VOCABULARIO}. Máximo 6 IDs.`,
-  tarea: `Divide una tarea infantil en 2 a 5 pasos breves. Responde solo JSON con {"etiqueta":"...","pasos":[{"instruccion":"...","pictogramaId":numero}]}. Usa IDs ARASAAC de esta lista cuando encajen: ${IDS_VOCABULARIO}. Si no encaja, usa ${PICTOGRAMA_POR_DEFECTO}.`,
+  pictogramas: `Convierte el texto en JSON {"ids":[numero,...]}. Usa solo los IDs del catálogo siguiente. Máximo 6 IDs.\n${CATALOGO}`,
+  tarea: `Divide una tarea infantil en 2 a 5 pasos breves. Responde solo JSON con {"etiqueta":"...","pasos":[{"instruccion":"...","pictogramaId":numero}]}. Usa IDs del catálogo. Si no encaja, usa ${PICTOGRAMA_POR_DEFECTO}.\n${CATALOGO}`,
   ayuda: 'Reformula el paso para un niño en una o dos frases cortas, positivas y sencillas. Responde solo con el texto.',
 };
 
@@ -31,7 +32,7 @@ async function conFallback<T>(action: () => Promise<T>, fallback: () => Promise<
 function validarTarea(task: TareaGenerada): TareaGenerada | null {
   const steps = (task.pasos ?? []).slice(0, 5).map((step) => ({
     instruccion: step.instruccion?.trim() || '',
-    pictogramaId: VOCABULARIO.some(({ id }) => id === step.pictogramaId)
+    pictogramaId: PICTOGRAM_IDS.has(step.pictogramaId)
       ? step.pictogramaId
       : sugerirPictograma(step.instruccion || ''),
   })).filter((step) => step.instruccion);
@@ -59,7 +60,7 @@ export const servicioIAOllama: ServicioIA = {
         messages: [{ role: 'system', content: SYSTEM_PROMPTS.pictogramas }, { role: 'user', content: texto }],
       });
       const parsed = parsearJsonSeguro<{ ids?: number[] }>(raw);
-      const ids = (parsed?.ids ?? []).filter((id) => VOCABULARIO.some(({ id: validId }) => validId === id));
+      const ids = (parsed?.ids ?? []).filter((id) => PICTOGRAM_IDS.has(id));
       return ids.length ? ids : servicioIAMock.fraseAPictogramas(texto);
     }, () => servicioIAMock.fraseAPictogramas(texto));
   },

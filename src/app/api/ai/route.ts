@@ -7,6 +7,8 @@ import {
   reformularPaso,
 } from '@/lib/server/vertex-ai';
 import { searchPictogram } from '@/lib/server/arasaac';
+import { PICTOGRAM_IDS } from '@/data/pictogramCatalog';
+import { PICTOGRAMA_POR_DEFECTO } from '@/ai/vocabulario';
 
 export const runtime = 'nodejs';
 
@@ -30,10 +32,20 @@ export async function POST(request: Request) {
       case 'fraseAPictogramas': {
         const { concepts } = await extraerConceptos(body.texto);
         const pictogramIds = await Promise.all(concepts.map(({ lemma }) => searchPictogram(lemma)));
-        return NextResponse.json({ result: pictogramIds.filter((id): id is number => id !== null) });
+        return NextResponse.json({ result: pictogramIds.filter((id): id is number => id !== null && PICTOGRAM_IDS.has(id)) });
       }
-      case 'descomponerTarea':
-        return NextResponse.json({ result: await descomponerTarea(body.texto) });
+      case 'descomponerTarea': {
+        const task = await descomponerTarea(body.texto);
+        return NextResponse.json({
+          result: {
+            ...task,
+            pasos: task.pasos.map((step) => ({
+              ...step,
+              pictogramaId: PICTOGRAM_IDS.has(step.pictogramaId) ? step.pictogramaId : PICTOGRAMA_POR_DEFECTO,
+            })),
+          },
+        });
+      }
       case 'reformularPaso':
         return NextResponse.json({ result: await reformularPaso(body.instruccion) });
     }

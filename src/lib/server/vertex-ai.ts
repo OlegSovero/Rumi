@@ -1,6 +1,7 @@
 import { VertexAI } from '@google-cloud/vertexai';
 import { z } from 'zod';
 import type { PasoGenerado, TareaGenerada } from '../../ai/tipos';
+import { catalogoParaPrompt } from '@/data/pictogramCatalog';
 
 const ConceptSchema = z.object({
   originalWord: z.string(),
@@ -81,7 +82,10 @@ export async function descomponerTarea(texto: string): Promise<TareaGenerada> {
 Divide esta tarea infantil en pasos claros y breves en español.
 Devuelve únicamente JSON con esta forma:
 {"etiqueta":"...","pasos":[{"instruccion":"...","pictogramaId":0}]}
-Usa pictogramaId 0 si no conoces un ID adecuado.
+Usa únicamente pictogramas del catálogo siguiente. Usa pictogramaId 5514 si no conoces un ID adecuado.
+
+Catálogo:
+${catalogoParaPrompt()}
 
 Tarea: ${JSON.stringify(texto)}
 `, TareaGeneradaSchema);
