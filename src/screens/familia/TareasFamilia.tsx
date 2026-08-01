@@ -27,6 +27,7 @@ type Borrador = {
   tinte: Tinte;
   pasos: PasoBorrador[];
   pensando: boolean;
+  guardando: boolean;
   generado: boolean;
 };
 
@@ -71,6 +72,7 @@ export function TareasFamilia({ childName }: Props) {
       tinte: TINTES_TAREA[tareas.length % TINTES_TAREA.length],
       pasos: [],
       pensando: false,
+      guardando: false,
       generado: false,
     });
 
@@ -83,11 +85,12 @@ export function TareasFamilia({ childName }: Props) {
       tinte: tarea.tinte,
       pasos: tarea.pasos.map((p) => ({ etiqueta: p.etiqueta, pictogramaId: p.pictogramaId })),
       pensando: false,
+      guardando: false,
       generado: true,
     });
 
   const generar = async () => {
-    if (!borrador || !borrador.texto.trim()) return;
+    if (!borrador || !borrador.texto.trim() || borrador.pensando || borrador.guardando) return;
     setBorrador({ ...borrador, pensando: true, generado: false });
     const resultado = await servicioIA.descomponerTarea(borrador.texto);
     setBorrador((actual) =>
@@ -107,28 +110,33 @@ export function TareasFamilia({ childName }: Props) {
     setBorrador((actual) => (actual ? { ...actual, pasos: actual.pasos.filter((_, i) => i !== indice) } : actual));
 
   const guardar = async () => {
-    if (!borrador || !borrador.etiqueta.trim() || borrador.pasos.length === 0) return;
-    const pasosConAyuda = await Promise.all(
-      borrador.pasos.map(async (p) => ({
-        etiqueta: p.etiqueta,
-        pictogramaId: p.pictogramaId,
-        ayuda: await servicioIA.reformularPaso(p.etiqueta),
-      }))
-    );
-    const tareaCompleta = {
-      id: borrador.id,
-      etiqueta: borrador.etiqueta.trim(),
-      tinte: borrador.tinte,
-      iconoId: pasosConAyuda[0].pictogramaId,
-      pasos: pasosConAyuda,
-    };
-    if (borrador.esEdicion) {
-      actualizarTareaConPasos(tareaCompleta);
-    } else {
-      crearTareaConPasos(tareaCompleta);
+    if (!borrador || !borrador.etiqueta.trim() || borrador.pasos.length === 0 || borrador.guardando) return;
+    setBorrador({ ...borrador, guardando: true });
+    try {
+      const pasosConAyuda = await Promise.all(
+        borrador.pasos.map(async (p) => ({
+          etiqueta: p.etiqueta,
+          pictogramaId: p.pictogramaId,
+          ayuda: await servicioIA.reformularPaso(p.etiqueta),
+        }))
+      );
+      const tareaCompleta = {
+        id: borrador.id,
+        etiqueta: borrador.etiqueta.trim(),
+        tinte: borrador.tinte,
+        iconoId: pasosConAyuda[0].pictogramaId,
+        pasos: pasosConAyuda,
+      };
+      if (borrador.esEdicion) {
+        actualizarTareaConPasos(tareaCompleta);
+      } else {
+        crearTareaConPasos(tareaCompleta);
+      }
+      setBorrador(null);
+      cargar();
+    } catch {
+      setBorrador((actual) => (actual ? { ...actual, guardando: false } : actual));
     }
-    setBorrador(null);
-    cargar();
   };
 
   if (borrador) {
@@ -283,16 +291,30 @@ function BorradorTarea({
             ))}
           </div>
 
-          <div className="acciones-borrador">
-            <button onClick={onGenerar} className="boton-otra-vez">
-              <ArrowClockwise size={17} color="#5A9E95" weight="bold" />
-              Otra vez
-            </button>
-            <button onClick={onGuardar} className="boton-guardar">
-              <Check size={19} color="#FFFFFF" weight="bold" />
-              Guardar tarea
-            </button>
-          </div>
+          {borrador.guardando ? (
+            <div className="burbuja-pensando">
+              <div className="avatar-gemma">
+                <Smiley size={24} color="#FFFFFF" weight="fill" />
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span className="texto-pensando">
+                  Gemma escribe la ayuda de cada paso ({borrador.pasos.length})
+                </span>
+                <span className="puntos-pensando">· · ·</span>
+              </div>
+            </div>
+          ) : (
+            <div className="acciones-borrador">
+              <button onClick={onGenerar} className="boton-otra-vez">
+                <ArrowClockwise size={17} color="#5A9E95" weight="bold" />
+                Otra vez
+              </button>
+              <button onClick={onGuardar} className="boton-guardar">
+                <Check size={19} color="#FFFFFF" weight="bold" />
+                Guardar tarea
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
