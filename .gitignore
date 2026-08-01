@@ -8,8 +8,15 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+bun.lock
 dist
 dist-ssr
+/.next
+/out
+*.tsbuildinfo
+next-env.d.ts
+/.env*
+!/.env.example
 *.local
 
 # Editor directories and files

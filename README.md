@@ -6,20 +6,26 @@ Presentado para LimaGDG — Grupo: Los caza bombitas.
 
 ## Estructura del repo
 
-- [`frontend/`](frontend) — la app web, en **Next.js** (App Router + TypeScript). Incluye su propio README con cómo correrla.
-- [`backend/`](backend) — orquestador (Express + TypeScript) que hace de puente hacia Vertex AI (Gemini) y la API de ARASAAC. Ver [`backend/README.md`](backend/README.md).
+- `src/` — aplicación Next.js con App Router y TypeScript.
+- `src/app/api/ai/route.ts` — API route server-side para Vertex AI y ARASAAC.
+- `public/` — pictogramas y recursos estáticos.
 
-El frontend es Next.js (no Vite/CRA) para poder tener un mini backend propio (API routes) dentro del mismo proyecto, sin depender de un segundo servidor para eso. Hoy sigue corriendo con un servicio de IA simulado (`servicioIAMock`), sin llamar a ningún backend en tiempo de ejecución.
+Next.js contiene tanto la interfaz como el endpoint server-side de IA. No hay un backend Express separado.
 
 ## Cómo correrlo
 
 ```bash
-cd frontend
 npm install
-npm run dev
+npm run dev      # http://localhost:3000
 ```
 
-Ver [`frontend/README.md`](frontend/README.md) para más detalle.
+```bash
+npm run build
+npm run start
+npm run lint
+```
+
+Por defecto la IA usa un mock local. Para activar Vertex AI, crea `.env.local` con `NEXT_PUBLIC_AI_MODE=vertex`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION` y `VERTEX_AI_MODEL`.
 
 ## Créditos y licencias
 
