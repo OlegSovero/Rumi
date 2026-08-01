@@ -1,10 +1,10 @@
 import type { ServicioIA, TareaGenerada } from './tipos';
 import { PICTOGRAMA_POR_DEFECTO, RECETAS_TAREA, quitarAcentos, sugerirPictograma } from './vocabulario';
 
-// Implementación simulada: respuestas pre-generadas / por reglas, sin modelo.
+// Implementaci├│n simulada: respuestas pre-generadas / por reglas, sin modelo.
 // Portada 1:1 de mini-proyectos/rumi-demo/src/services/ia/servicioIAMock.ts.
 // La demora artificial imita la latencia real de una inferencia on-device,
-// así la UI se comporta igual que con la implementación real de Gemma.
+// as├¡ la UI se comporta igual que con la implementaci├│n real de Gemma.
 
 const LATENCIA_MS = 800;
 
@@ -17,20 +17,20 @@ function capitalizar(texto: string): string {
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
 }
 
-const SEPARADOR_PASOS = /\s*(?:,|;| y luego | y | luego | despu[eé]s )\s*/i;
+const SEPARADOR_PASOS = /\s*(?:,|;| y luego | y | luego | despu[e├⌐]s )\s*/i;
 const PALABRAS_VACIAS = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'a', 'que', 'y', 'en', 'su']);
 
-// Palabras sueltas que suenan más naturales como exclamación corta que como
-// oración plana con punto (p. ej. "¡Gracias!" en vez de "Gracias.").
+// Palabras sueltas que suenan m├ís naturales como exclamaci├│n corta que como
+// oraci├│n plana con punto (p. ej. "┬íGracias!" en vez de "Gracias.").
 const PALABRAS_EXCLAMATIVAS = new Set(['gracias', 'ayuda', 'no']);
 
-// Simula lo que Gemma haría con la secuencia de pictogramas: no es un simple
-// join, arma una oración articulada (mayúscula inicial + puntuación).
+// Simula lo que Gemma har├¡a con la secuencia de pictogramas: no es un simple
+// join, arma una oraci├│n articulada (may├║scula inicial + puntuaci├│n).
 function articularFrase(etiquetas: string[]): string {
   if (etiquetas.length === 0) return '';
   if (etiquetas.length === 1) {
     const palabra = capitalizar(etiquetas[0]);
-    return PALABRAS_EXCLAMATIVAS.has(quitarAcentos(etiquetas[0])) ? `¡${palabra}!` : `${palabra}.`;
+    return PALABRAS_EXCLAMATIVAS.has(quitarAcentos(etiquetas[0])) ? `┬í${palabra}!` : `${palabra}.`;
   }
   const frase = capitalizar(etiquetas.join(' ').replace(/\s+/g, ' ').trim());
   return /[.!?]$/.test(frase) ? frase : `${frase}.`;
@@ -78,7 +78,7 @@ export const servicioIAMock: ServicioIA = {
   async fraseAPictogramas(texto) {
     const palabras = quitarAcentos(texto)
       .split(/\s+/)
-      .map((p) => p.replace(/[.,;!¡¿?]/g, ''))
+      .map((p) => p.replace(/[.,;!┬í┬┐?]/g, ''))
       .filter((p) => p.length >= 3 && !PALABRAS_VACIAS.has(p));
 
     return esperar(palabras.map((p) => sugerirPictograma(p)));
@@ -89,8 +89,8 @@ export const servicioIAMock: ServicioIA = {
   },
 
   async reformularPaso(instruccion) {
-    return esperar(`Vamos a ${instruccion.trim().toLowerCase()}. Tú puedes.`, 400);
+    return esperar(`Vamos a ${instruccion.trim().toLowerCase()}. T├║ puedes.`, 400);
   },
 };
 
-export const servicioIA = servicioIAMock;
+// El export can├│nico vive en ./index.ts (elige Ollama o mock).

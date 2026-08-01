@@ -1,6 +1,5 @@
 // Lectura en voz alta, en español. En la app móvil usa expo-speech (offline);
-// aquí usamos la Web Speech API del navegador (equivalente offline-first: no
-// hay llamada de red, la síntesis corre en el propio SO/navegador).
+// aquí usamos la Web Speech API del navegador.
 export function hablar(texto: string): void {
   if (!texto || !('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();

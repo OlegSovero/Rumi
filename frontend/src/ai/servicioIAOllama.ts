@@ -1,0 +1,145 @@
+import type { ServicioIA, TareaGenerada } from './tipos';
+import { chatOllama, parsearJsonSeguro } from './ollamaCliente';
+import { PICTOGRAMA_POR_DEFECTO, quitarAcentos, sugerirPictograma, VOCABULARIO } from './vocabulario';
+import { servicioIAMock } from './servicioIAMock';
+
+// Implementaci├│n real: Gemma v├¡a Ollama local (offline).
+// Misma interfaz ServicioIA que el mock ΓÇö las pantallas no cambian.
+
+const IDS_VOCABULARIO = VOCABULARIO.map((v) => v.id).join(', ');
+
+const SISTEMA_DESCOMPONER = `Eres Rumi, asistente de CAA (comunicaci├│n aumentativa) para ni├▒os autistas no verbales.
+Descompones tareas cotidianas en pasos cortos, concretos y en espa├▒ol sencillo (infinitivo o imperativo suave).
+Responde SOLO JSON v├ílido con esta forma:
+{"etiqueta":"nombre corto de la tarea","pasos":[{"instruccion":"paso corto","pictogramaId":numero}]}
+Reglas:
+- Entre 2 y 5 pasos.
+- Cada instruccion: m├íximo 6 palabras, sin met├íforas.
+- pictogramaId debe ser uno de estos IDs ARASAAC si encaja: ${IDS_VOCABULARIO}. Si no, usa ${PICTOGRAMA_POR_DEFECTO}.
+- No a├▒adas texto fuera del JSON.`;
+
+const SISTEMA_FRASE = `Eres Rumi, CAA para ni├▒os. Conviertes pictogramas en UNA frase natural en espa├▒ol.
+Reglas OBLIGATORIAS:
+- Debes conservar TODAS las palabras de la lista, en especial negaciones ("no"), "m├ís", "yo", "quiero", "ayuda".
+- Puedes reordenar para que suene natural (ej. yo, quiero, no, ayuda ΓåÆ "Yo no quiero ayuda.").
+- NUNCA borres ni ignores "no" u otra palabra de la lista.
+- Frase corta, clara, para leer en voz alta.
+- Responde SOLO con la frase final, sin comillas ni explicaci├│n.`;
+
+const SISTEMA_PICTOS = `Eres Rumi. Dado un texto del ni├▒o o familia, eliges pictogramas ARASAAC.
+Responde SOLO JSON: {"ids":[numero,...]} usando solo estos IDs: ${IDS_VOCABULARIO}.
+M├íximo 6 ids, en orden de la frase.`;
+
+const SISTEMA_REFORMULAR = `Eres Gemma, la ayudante amable de Rumi. Reformulas un paso de rutina para un ni├▒o autista que no entiende.
+Usa espa├▒ol muy simple, positivo, en 1 o 2 oraciones cortas. Empieza con ├ínimo (ej. "Vamos a...").
+Responde SOLO con el texto de ayuda, sin JSON ni comillas.`;
+
+function enriquecerPictogramas(tarea: TareaGenerada): TareaGenerada {
+  return {
+    etiqueta: tarea.etiqueta?.trim() || 'Tarea',
+    pasos: (tarea.pasos ?? []).slice(0, 5).map((p) => {
+      const instruccion = (p.instruccion || '').trim();
+      const id =
+        typeof p.pictogramaId === 'number' && VOCABULARIO.some((v) => v.id === p.pictogramaId)
+          ? p.pictogramaId
+          : sugerirPictograma(instruccion);
+      return { instruccion, pictogramaId: id };
+    }),
+  };
+}
+
+async function conFallback<T>(accion: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
+  try {
+    return await accion();
+  } catch (err) {
+    console.warn('[Rumi IA] Ollama fall├│, usando mock:', err);
+    return fallback();
+  }
+}
+
+/** Si Gemma omite alguna etiqueta (p. ej. "no"), la frase no es v├ílida. */
+function fraseConservaEtiquetas(secuencia: { etiqueta: string }[], frase: string): boolean {
+  const f = quitarAcentos(frase);
+  return secuencia.every((it) => {
+    const e = quitarAcentos(it.etiqueta.trim());
+    return !e || f.includes(e);
+  });
+}
+
+function fraseFallback(secuencia: { etiqueta: string }[]): string {
+  const partes = secuencia.map((it) => it.etiqueta.trim()).filter(Boolean);
+  if (partes.length === 0) return '';
+  const unidos = partes.join(' ');
+  const frase = unidos.charAt(0).toUpperCase() + unidos.slice(1);
+  return /[.!?┬í┬┐]$/.test(frase) ? frase : `${frase}.`;
+}
+
+export const servicioIAOllama: ServicioIA = {
+  async pictogramasAFrase(secuencia) {
+    return conFallback(async () => {
+      const lista = secuencia.map((it) => it.etiqueta).join(' | ');
+      const texto = await chatOllama({
+        messages: [
+          { role: 'system', content: SISTEMA_FRASE },
+          {
+            role: 'user',
+            content: `Pictogramas en orden (incluye todos, sobre todo "no" si aparece):\n${lista}`,
+          },
+        ],
+        temperature: 0.1,
+      });
+      const limpio = texto.replace(/^["┬½]|["┬╗]$/g, '').trim();
+      if (!limpio || !fraseConservaEtiquetas(secuencia, limpio)) {
+        console.warn('[Rumi IA] Gemma omiti├│ pictogramas; usando frase de respaldo.', { limpio, secuencia });
+        return fraseFallback(secuencia);
+      }
+      return limpio;
+    }, () => servicioIAMock.pictogramasAFrase(secuencia));
+  },
+
+  async fraseAPictogramas(texto) {
+    return conFallback(async () => {
+      const bruto = await chatOllama({
+        json: true,
+        messages: [
+          { role: 'system', content: SISTEMA_PICTOS },
+          { role: 'user', content: texto },
+        ],
+      });
+      const parsed = parsearJsonSeguro<{ ids?: number[] }>(bruto);
+      const ids = (parsed?.ids ?? []).filter((id) => VOCABULARIO.some((v) => v.id === id));
+      if (ids.length === 0) return servicioIAMock.fraseAPictogramas(texto);
+      return ids;
+    }, () => servicioIAMock.fraseAPictogramas(texto));
+  },
+
+  async descomponerTarea(texto) {
+    return conFallback(async () => {
+      const bruto = await chatOllama({
+        json: true,
+        messages: [
+          { role: 'system', content: SISTEMA_DESCOMPONER },
+          { role: 'user', content: `Tarea: ${texto}` },
+        ],
+      });
+      const parsed = parsearJsonSeguro<TareaGenerada>(bruto);
+      if (!parsed?.pasos?.length) return servicioIAMock.descomponerTarea(texto);
+      const enriquecida = enriquecerPictogramas(parsed);
+      if (enriquecida.pasos.length === 0) return servicioIAMock.descomponerTarea(texto);
+      return enriquecida;
+    }, () => servicioIAMock.descomponerTarea(texto));
+  },
+
+  async reformularPaso(instruccion) {
+    return conFallback(async () => {
+      const texto = await chatOllama({
+        messages: [
+          { role: 'system', content: SISTEMA_REFORMULAR },
+          { role: 'user', content: `Paso: ${instruccion}` },
+        ],
+        temperature: 0.4,
+      });
+      return texto || `Vamos a ${instruccion.trim().toLowerCase()}. T├║ puedes.`;
+    }, () => servicioIAMock.reformularPaso(instruccion));
+  },
+};

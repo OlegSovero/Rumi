@@ -1,6 +1,6 @@
 'use client';
 
-import { ChatCircleDots, House, ListChecks, Play } from '@phosphor-icons/react';
+import { ChatCircleDots, House, ListChecks, Play, Smiley } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { CategoryTile } from '../../components/CategoryTile';
@@ -19,13 +19,29 @@ import {
   type Tarea,
 } from '../../lib/db';
 import { registrarFrase, marcarTareaCompletada, obtenerTareas } from '../../lib/db';
-import { servicioIA } from '../../ai/servicioIAMock';
+import { servicioIA } from '../../ai';
 import { hablar } from '../../lib/voz';
 import { useConfiguracionStore } from '../../store/configuracion';
 import { TintesCategoria } from '../../theme';
 import { EjecutorTarea } from './EjecutorTarea';
 
 let contadorClave = 0;
+
+function fraseCruda(items: ItemFrase[]): string {
+  return items
+    .map((it) => it.etiqueta.trim())
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function normalizarFrase(texto: string): string {
+  return texto
+    .toLowerCase()
+    .replace(/[¡!¿?.«»"']/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 export function PantallaNino() {
   const router = useRouter();
@@ -35,6 +51,8 @@ export function PantallaNino() {
   const [cat, setCat] = useState<string | null>(null);
   const [items, setItems] = useState<ItemFrase[]>([]);
   const [premioTarea, setPremioTarea] = useState(false);
+  const [hablando, setHablando] = useState(false);
+  const [fraseGemma, setFraseGemma] = useState<{ texto: string; reordeno: boolean } | null>(null);
 
   const [conteoTableros, setConteoTableros] = useState<Record<string, number>>({});
   const [palabrasCategoria, setPalabrasCategoria] = useState<FilaPictograma[]>([]);
@@ -58,6 +76,10 @@ export function PantallaNino() {
     setPalabrasCategoria(obtenerPictogramasPorCategoria(cat));
   }, [cat]);
 
+  useEffect(() => {
+    setFraseGemma(null);
+  }, [items]);
+
   const agregarItem = useCallback(
     (id: number, label: string) => {
       contadorClave += 1;
@@ -70,10 +92,18 @@ export function PantallaNino() {
   const onBorrarUltimo = () => setItems((prev) => prev.slice(0, -1));
 
   const onHablar = async () => {
-    if (items.length === 0) return;
-    const texto = await servicioIA.pictogramasAFrase(items);
-    hablar(texto);
-    registrarFrase(texto);
+    if (items.length === 0 || hablando) return;
+    setHablando(true);
+    setFraseGemma(null);
+    try {
+      const texto = await servicioIA.pictogramasAFrase(items);
+      const reordeno = normalizarFrase(texto) !== normalizarFrase(fraseCruda(items));
+      setFraseGemma({ texto, reordeno });
+      hablar(texto);
+      registrarFrase(texto);
+    } finally {
+      setHablando(false);
+    }
   };
 
   const tareaActiva = tareas.find((t) => t.id === tareaActivaId) ?? null;
@@ -115,7 +145,20 @@ export function PantallaNino() {
 
       {!tareaActivaId && vista === 'hablar' && (
         <div className="nino-seccion-tira">
-          <SentenceStrip items={items} onDeleteLast={onBorrarUltimo} onSpeak={onHablar} />
+          <SentenceStrip items={items} onDeleteLast={onBorrarUltimo} onSpeak={onHablar} hablando={hablando} />
+          {fraseGemma && (
+            <div className="burbuja-frase-gemma" role="status">
+              <div className="avatar-gemma">
+                <Smiley size={22} color="#FFFFFF" weight="fill" />
+              </div>
+              <div>
+                <div className="nombre-frase-gemma">
+                  {fraseGemma.reordeno ? 'Gemma ordenó la frase' : 'Gemma'}
+                </div>
+                <p className="texto-frase-gemma">{fraseGemma.texto}</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

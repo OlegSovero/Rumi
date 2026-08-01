@@ -457,6 +457,16 @@ button:disabled {
   transition: transform 0.1s;
 }
 .sentence-speak:active { transform: scale(0.94); }
+.sentence-speak:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+.icono-girando {
+  animation: icono-giro 0.9s linear infinite;
+}
+@keyframes icono-giro {
+  to { transform: rotate(360deg); }
+}
 
 /* ---------- RewardBloom ---------- */
 .reward-overlay {
@@ -651,6 +661,28 @@ button:disabled {
   white-space: nowrap;
 }
 .nino-seccion-toggle, .nino-seccion-tira { padding: 0 14px 12px; }
+.burbuja-frase-gemma {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--teal-100);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+.nombre-frase-gemma {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--teal-700);
+  margin-bottom: 2px;
+}
+.texto-frase-gemma {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--ink-800);
+}
 .nino-scroll { flex: 1; padding: 0 14px 18px; overflow-y: auto; }
 .fila-tarea {
   display: flex;
