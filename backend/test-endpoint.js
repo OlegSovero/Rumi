@@ -6,7 +6,7 @@
  */
 
 const TEXT = process.argv[2] || 'yo quiero comer una manzana';
-const BASE_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+const BASE_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
 async function testEndpoint() {
   console.log('🧪 Testing Rumi Backend Orchestrator\n');

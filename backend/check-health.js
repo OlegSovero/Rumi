@@ -4,7 +4,7 @@
  * Health check script
  */
 
-const BASE_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+const BASE_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
 async function checkHealth() {
   console.log('🏥 Checking backend health...\n');
