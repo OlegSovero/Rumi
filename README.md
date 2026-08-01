@@ -79,17 +79,40 @@ MLX y Ollama son proveedores locales: no funcionan dentro de Cloud Run porque de
 
 La aplicación desktop prepara Python, instala `mlx-vlm`, descarga Gemma y levanta un servidor compatible con OpenAI en `localhost:11435`. Rumi web se conecta a ese servidor mediante su proxy Next.js.
 
-1. Abre `/Users/milumon/Documents/Github/rumi-gemma-desktop-app`.
-2. Ejecuta la aplicación Electron y pulsa `Preparar Gemma` o inicia el modelo desde el modo cuidador.
-3. En la raíz de Rumi crea `.env.local`:
+Requisitos: macOS con Apple Silicon, Node.js 20 o superior y Python 3.10, 3.11, 3.12 o 3.13.
+
+1. Instala y valida la aplicación desktop:
+
+```bash
+cd /Users/milumon/Documents/Github/rumi-gemma-desktop-app
+npm install
+npm run typecheck
+npm run dev
+```
+
+2. En la ventana desktop pulsa `Preparar Gemma`. La aplicación crea un entorno Python local, instala `mlx-vlm`, descarga `mlx-community/gemma-4-e4b-it-4bit` y arranca MLX en el puerto `11435`.
+3. Comprueba que el servidor MLX responde:
+
+```bash
+curl http://127.0.0.1:11435/v1/models
+```
+
+4. En la raíz de Rumi crea `.env.local`:
 
 ```env
 NEXT_PUBLIC_IA_PROVIDER=mlx
 NEXT_PUBLIC_MLX_MODEL=mlx-community/gemma-4-e4b-it-4bit
 ```
 
-4. En otra terminal, ejecuta `npm run dev` en Rumi.
-5. Abre `http://localhost:3000` y revisa `Familia > Ajustes > Asistente IA`.
+5. En otra terminal, ejecuta Rumi desde la raíz:
+
+```bash
+cd /Users/milumon/Documents/Github/Rumi
+npm install
+npm run dev
+```
+
+6. Abre `http://localhost:3000` y revisa `Familia > Ajustes > Asistente IA`.
 
 El panel debe mostrar `mlx` y `Servidor MLX local disponible`. Si cierras la aplicación desktop, Rumi vuelve al mock automáticamente.
 
