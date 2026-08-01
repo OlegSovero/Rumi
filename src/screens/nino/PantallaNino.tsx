@@ -20,6 +20,7 @@ import {
 } from '../../lib/db';
 import { registrarFrase, marcarTareaCompletada, obtenerTareas } from '../../lib/db';
 import { servicioIA } from '../../ai/servicioIA';
+import type { InterpretacionComunicacion } from '../../ai/tipos';
 import { hablar } from '../../lib/voz';
 import { useConfiguracionStore } from '../../store/configuracion';
 import { TintesCategoria } from '../../theme';
@@ -34,6 +35,8 @@ export function PantallaNino() {
   const [vista, setVista] = useState<'hablar' | 'tareas'>('hablar');
   const [cat, setCat] = useState<string | null>(null);
   const [items, setItems] = useState<ItemFrase[]>([]);
+  const [interpretacion, setInterpretacion] = useState<InterpretacionComunicacion | null>(null);
+  const [interpretando, setInterpretando] = useState(false);
   const [premioTarea, setPremioTarea] = useState(false);
 
   const [conteoTableros, setConteoTableros] = useState<Record<string, number>>({});
@@ -58,23 +61,65 @@ export function PantallaNino() {
     setPalabrasCategoria(obtenerPictogramasPorCategoria(cat));
   }, [cat]);
 
+  useEffect(() => {
+    let cancelado = false;
+
+    if (items.length === 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const resultado = await servicioIA.pictogramasAFrase(items);
+        if (!cancelado) setInterpretacion(resultado);
+      } finally {
+        if (!cancelado) setInterpretando(false);
+      }
+    }, 350);
+
+    return () => {
+      cancelado = true;
+      window.clearTimeout(timer);
+    };
+  }, [items]);
+
   const agregarItem = useCallback(
     (id: number, label: string) => {
-      contadorClave += 1;
-      setItems((prev) => [...prev, { key: `k${contadorClave}`, id, etiqueta: label }]);
+      const key = `k${Date.now()}-${contadorClave += 1}`;
+      setInterpretacion(null);
+      setInterpretando(true);
+      setItems((prev) => [...prev, { key, id, etiqueta: label }]);
       registrarUsoPictograma(id);
     },
     []
   );
 
-  const onBorrarUltimo = () => setItems((prev) => prev.slice(0, -1));
+  const onBorrarUltimo = () => {
+    setInterpretacion(null);
+    setInterpretando(false);
+    setItems((prev) => prev.slice(0, -1));
+  };
 
-  const onHablar = async () => {
+  const onHablar = () => {
     if (items.length === 0) return;
-    const texto = await servicioIA.pictogramasAFrase(items);
+    const texto = interpretacion?.status === 'complete' && interpretacion.interpretation
+      ? interpretacion.interpretation
+      : items.map(({ etiqueta }) => etiqueta).join(' ');
     hablar(texto);
     registrarFrase(texto);
   };
+
+  const seleccionarAlternativa = (alternative: string) => {
+    setInterpretacion((actual) => actual ? {
+      ...actual,
+      status: 'complete',
+      interpretation: alternative,
+      confidence: 1,
+      alternatives: [],
+    } : actual);
+  };
+
+  const seleccionarSugerencia = (id: number, label: string) => agregarItem(id, label);
 
   const tareaActiva = tareas.find((t) => t.id === tareaActivaId) ?? null;
   const categoriaAbierta = TABLEROS.find((t) => t.id === cat) ?? null;
@@ -115,7 +160,15 @@ export function PantallaNino() {
 
       {!tareaActivaId && vista === 'hablar' && (
         <div className="nino-seccion-tira">
-          <SentenceStrip items={items} onDeleteLast={onBorrarUltimo} onSpeak={onHablar} />
+          <SentenceStrip
+            items={items}
+            onDeleteLast={onBorrarUltimo}
+            onSpeak={onHablar}
+            interpretation={interpretacion}
+            interpreting={interpretando}
+            onSelectAlternative={seleccionarAlternativa}
+            onSelectSuggestion={seleccionarSugerencia}
+          />
         </div>
       )}
 

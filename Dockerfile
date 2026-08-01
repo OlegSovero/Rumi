@@ -9,6 +9,8 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_AI_MODE=mock
 ENV NEXT_PUBLIC_AI_MODE=$NEXT_PUBLIC_AI_MODE
+ARG NEXT_PUBLIC_IA_PROVIDER=mock
+ENV NEXT_PUBLIC_IA_PROVIDER=$NEXT_PUBLIC_IA_PROVIDER
 COPY --from=deps /app/node_modules ./node_modules
 COPY . ./
 RUN npm run build

@@ -150,7 +150,7 @@ export function TareasFamilia({ childName }: Props) {
   return (
     <div>
       <EncouragementBanner tone="calm" icon={<Sparkle size={22} color="#FFFFFF" weight="fill" />}>
-        {`Crea las tareas de ${childName} con Gemma: escríbelas y ella las convierte en pasos con pictogramas.`}
+        {`Crea las rutinas de ${childName}: describe lo que quieres conseguir y Gemma lo convierte en acciones visuales con pictogramas.`}
       </EncouragementBanner>
 
       <div style={{ marginTop: 12 }}>

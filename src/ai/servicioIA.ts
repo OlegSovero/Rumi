@@ -1,4 +1,4 @@
-import type { ServicioIA, TareaGenerada } from './tipos';
+import type { InterpretacionComunicacion, ServicioIA, TareaGenerada } from './tipos';
 import { servicioIAMock } from './servicioIAMock';
 import { servicioIAOllama } from './servicioIAOllama';
 import { servicioIAMlx } from './servicioIAMlx';
@@ -17,8 +17,8 @@ async function request<T>(body: Record<string, unknown>): Promise<T> {
   return payload.result;
 }
 
-const servicioIAVertex: ServicioIA = {
-  pictogramasAFrase: (secuencia) => request<string>({ operation: 'pictogramasAFrase', secuencia }),
+const servicioIAGoogle: ServicioIA = {
+  pictogramasAFrase: (secuencia) => request<InterpretacionComunicacion>({ operation: 'pictogramasAFrase', secuencia }),
   fraseAPictogramas: (texto) => request<number[]>({ operation: 'fraseAPictogramas', texto }),
   descomponerTarea: (texto) => request<TareaGenerada>({ operation: 'descomponerTarea', texto }),
   reformularPaso: (instruccion) => request<string>({ operation: 'reformularPaso', instruccion }),
@@ -26,8 +26,8 @@ const servicioIAVertex: ServicioIA = {
 
 const provider = (process.env.NEXT_PUBLIC_IA_PROVIDER || process.env.NEXT_PUBLIC_AI_MODE || 'mock').toLowerCase();
 
-export const servicioIA = provider === 'vertex'
-  ? servicioIAVertex
+export const servicioIA = provider === 'google'
+  ? servicioIAGoogle
   : provider === 'ollama'
     ? servicioIAOllama
     : provider === 'mlx'

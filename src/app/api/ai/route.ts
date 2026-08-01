@@ -5,10 +5,11 @@ import {
   extraerConceptos,
   pictogramasAFrase,
   reformularPaso,
-} from '@/lib/server/vertex-ai';
+} from '@/lib/server/google-ai';
 import { searchPictogram } from '@/lib/server/arasaac';
 import { PICTOGRAM_IDS } from '@/data/pictogramCatalog';
-import { PICTOGRAMA_POR_DEFECTO } from '@/ai/vocabulario';
+import { resolverPlan } from '@/ai/planTarea';
+import { validarInterpretacion } from '@/ai/comunicacion';
 
 export const runtime = 'nodejs';
 
@@ -28,23 +29,15 @@ export async function POST(request: Request) {
 
     switch (body.operation) {
       case 'pictogramasAFrase':
-        return NextResponse.json({ result: await pictogramasAFrase(body.secuencia) });
+        return NextResponse.json({ result: validarInterpretacion(await pictogramasAFrase(body.secuencia), body.secuencia) });
       case 'fraseAPictogramas': {
         const { concepts } = await extraerConceptos(body.texto);
         const pictogramIds = await Promise.all(concepts.map(({ lemma }) => searchPictogram(lemma)));
         return NextResponse.json({ result: pictogramIds.filter((id): id is number => id !== null && PICTOGRAM_IDS.has(id)) });
       }
       case 'descomponerTarea': {
-        const task = await descomponerTarea(body.texto);
-        return NextResponse.json({
-          result: {
-            ...task,
-            pasos: task.pasos.map((step) => ({
-              ...step,
-              pictogramaId: PICTOGRAM_IDS.has(step.pictogramaId) ? step.pictogramaId : PICTOGRAMA_POR_DEFECTO,
-            })),
-          },
-        });
+        const plan = await descomponerTarea(body.texto);
+        return NextResponse.json({ result: resolverPlan(plan) });
       }
       case 'reformularPaso':
         return NextResponse.json({ result: await reformularPaso(body.instruccion) });

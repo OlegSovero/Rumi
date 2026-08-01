@@ -406,6 +406,54 @@ button:disabled {
   scrollbar-width: none;
 }
 .sentence-scroll::-webkit-scrollbar { display: none; }
+.sentence-main { flex: 1; min-width: 0; }
+.sentence-interpretation {
+  margin: 2px 6px 4px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--cream-100);
+}
+.sentence-literal {
+  color: var(--ink-500);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.sentence-result {
+  color: var(--ink-900);
+  font-size: 17px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.sentence-status { color: var(--ink-600); font-size: 13px; margin-top: 2px; }
+.sentence-interpretation-ambiguous { background: #fff5df; }
+.sentence-interpretation-incomplete { background: #eef5ee; }
+.sentence-alternatives { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.sentence-alternatives button {
+  border: 1px solid var(--sand-200);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--white);
+  color: var(--ink-800);
+  font-size: 12px;
+  font-weight: 700;
+}
+.sentence-suggestions { color: var(--ink-600); font-size: 12px; margin-top: 7px; }
+.sentence-suggestions > span { display: block; font-weight: 700; margin-bottom: 5px; }
+.sentence-suggestion-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.sentence-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px 3px 3px;
+  border: 1px solid var(--sand-200);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink-800);
+  font-size: 11px;
+  font-weight: 700;
+}
+.sentence-suggestion:active { transform: scale(0.96); }
 .sentence-item {
   width: 66px;
   flex-shrink: 0;
@@ -444,7 +492,7 @@ button:disabled {
 }
 .sentence-undo:hover { background: var(--sand-200); }
 .sentence-speak {
-  width: 66px;
+  width: 86px;
   height: 66px;
   border-radius: var(--r-circle);
   background: var(--teal-500);
@@ -455,8 +503,14 @@ button:disabled {
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(90,158,149,0.4);
   transition: transform 0.1s;
+  flex-direction: column;
+  gap: 1px;
 }
+.sentence-speak-label { color: var(--white); font-size: 10px; font-weight: 700; }
+.sentence-loading-icon { animation: sentence-spin 0.9s linear infinite; }
+@keyframes sentence-spin { to { transform: rotate(360deg); } }
 .sentence-speak:active { transform: scale(0.94); }
+.sentence-speak:disabled { opacity: 0.55; box-shadow: none; }
 
 /* ---------- RewardBloom ---------- */
 .reward-overlay {

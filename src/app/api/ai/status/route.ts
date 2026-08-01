@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 
 const provider = (process.env.NEXT_PUBLIC_IA_PROVIDER || process.env.NEXT_PUBLIC_AI_MODE || 'mock').toLowerCase();
-const model = provider === 'vertex'
-  ? process.env.VERTEX_AI_MODEL || 'not configured'
+const model = provider === 'google'
+  ? process.env.GOOGLE_AI_MODEL || 'gemma-4-26b-a4b-it'
   : provider === 'ollama'
     ? process.env.NEXT_PUBLIC_OLLAMA_MODEL || 'gemma4:e2b'
     : provider === 'mlx'
@@ -42,13 +42,13 @@ export async function GET() {
     }
   }
 
-  if (provider === 'vertex') {
-    const ready = Boolean(process.env.GOOGLE_CLOUD_PROJECT && process.env.VERTEX_AI_MODEL);
+  if (provider === 'google') {
+    const ready = Boolean(process.env.GOOGLE_API_KEY);
     return NextResponse.json({
       provider,
       model,
       ready,
-      detail: ready ? 'Configurado; se conecta solo cuando se usa una función de IA' : 'Faltan variables de Vertex AI',
+      detail: ready ? 'Google AI configurado; se conecta solo cuando se usa una función de IA' : 'Falta GOOGLE_API_KEY',
     });
   }
 

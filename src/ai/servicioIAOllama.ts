@@ -1,24 +1,19 @@
-import type { ServicioIA, TareaGenerada } from './tipos';
-import { PICTOGRAMA_POR_DEFECTO, quitarAcentos, sugerirPictograma } from './vocabulario';
+import type { InterpretacionComunicacion, PlanTarea, ServicioIA } from './tipos';
+import { quitarAcentos } from './vocabulario';
+import { PROMPT_COMUNICACION, validarInterpretacion } from './comunicacion';
 import { chatOllama, parsearJsonSeguro } from './ollamaCliente';
 import { servicioIAMock } from './servicioIAMock';
 import { catalogoParaPrompt, PICTOGRAM_IDS } from '../data/pictogramCatalog';
+import { resolverPlan } from './planTarea';
 
 const CATALOGO = catalogoParaPrompt();
 
 const SYSTEM_PROMPTS = {
-  frase: 'Convierte pictogramas en una frase natural y breve en español. Conserva todas las palabras, especialmente no, más, yo y quiero. Responde solo con la frase.',
+  frase: PROMPT_COMUNICACION,
   pictogramas: `Convierte el texto en JSON {"ids":[numero,...]}. Usa solo los IDs del catálogo siguiente. Máximo 6 IDs.\n${CATALOGO}`,
-  tarea: `Divide una tarea infantil en 2 a 5 pasos breves. Responde solo JSON con {"etiqueta":"...","pasos":[{"instruccion":"...","pictogramaId":numero}]}. Usa IDs del catálogo. Si no encaja, usa ${PICTOGRAMA_POR_DEFECTO}.\n${CATALOGO}`,
+  tarea: `Convierte la intención de un cuidador en una rutina visual para un niño. No reformules la petición ni escribas lo que el adulto quiere. Genera entre 2 y 6 acciones distintas, observables y ordenadas. Responde solo JSON con {"taskName":"...","steps":[{"action":"...","text":"...","queries":["..."]}]}. Cada text debe ser corto, literal y desde la perspectiva del niño cuando sea apropiado. Cada query describe la acción u objeto que se debe buscar en un catálogo de pictogramas. No generes IDs. Catálogo disponible:\n${CATALOGO}`,
   ayuda: 'Reformula el paso para un niño en una o dos frases cortas, positivas y sencillas. Responde solo con el texto.',
 };
-
-function fallbackFrase(secuencia: { etiqueta: string }[]): string {
-  const text = secuencia.map(({ etiqueta }) => etiqueta.trim()).filter(Boolean).join(' ');
-  if (!text) return '';
-  const sentence = text.charAt(0).toUpperCase() + text.slice(1);
-  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
-}
 
 async function conFallback<T>(action: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
   try {
@@ -29,27 +24,18 @@ async function conFallback<T>(action: () => Promise<T>, fallback: () => Promise<
   }
 }
 
-function validarTarea(task: TareaGenerada): TareaGenerada | null {
-  const steps = (task.pasos ?? []).slice(0, 5).map((step) => ({
-    instruccion: step.instruccion?.trim() || '',
-    pictogramaId: PICTOGRAM_IDS.has(step.pictogramaId)
-      ? step.pictogramaId
-      : sugerirPictograma(step.instruccion || ''),
-  })).filter((step) => step.instruccion);
-  return steps.length ? { etiqueta: task.etiqueta?.trim() || 'Tarea', pasos: steps } : null;
-}
-
 export const servicioIAOllama: ServicioIA = {
   pictogramasAFrase(secuencia) {
     return conFallback(async () => {
-      const result = await chatOllama({
+      const raw = await chatOllama({
+        json: true,
         messages: [
           { role: 'system', content: SYSTEM_PROMPTS.frase },
-          { role: 'user', content: secuencia.map(({ etiqueta }) => etiqueta).join(' | ') },
+          { role: 'user', content: JSON.stringify({ selected_symbols: secuencia.map(({ id, etiqueta }) => ({ id, concept: etiqueta })) }) },
         ],
         temperature: 0.1,
       });
-      return result || fallbackFrase(secuencia);
+      return validarInterpretacion(parsearJsonSeguro<Partial<InterpretacionComunicacion>>(raw), secuencia);
     }, () => servicioIAMock.pictogramasAFrase(secuencia));
   },
 
@@ -71,8 +57,8 @@ export const servicioIAOllama: ServicioIA = {
         json: true,
         messages: [{ role: 'system', content: SYSTEM_PROMPTS.tarea }, { role: 'user', content: texto }],
       });
-      const parsed = parsearJsonSeguro<TareaGenerada>(raw);
-      return (parsed && validarTarea(parsed)) || servicioIAMock.descomponerTarea(texto);
+      const parsed = parsearJsonSeguro<PlanTarea>(raw);
+      return parsed?.steps?.length ? resolverPlan(parsed) : servicioIAMock.descomponerTarea(texto);
     }, () => servicioIAMock.descomponerTarea(texto));
   },
 

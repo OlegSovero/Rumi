@@ -1,8 +1,10 @@
-import type { ServicioIA, TareaGenerada } from './tipos';
-import { PICTOGRAMA_POR_DEFECTO, quitarAcentos, sugerirPictograma } from './vocabulario';
+import type { InterpretacionComunicacion, PlanTarea, ServicioIA } from './tipos';
+import { quitarAcentos } from './vocabulario';
+import { PROMPT_COMUNICACION, validarInterpretacion } from './comunicacion';
 import { chatMlx, parsearJsonMlx } from './mlxCliente';
 import { servicioIAMock } from './servicioIAMock';
 import { catalogoParaPrompt, PICTOGRAM_IDS } from '../data/pictogramCatalog';
+import { resolverPlan } from './planTarea';
 
 const CATALOGO = catalogoParaPrompt();
 const FALLBACK = servicioIAMock;
@@ -16,22 +18,15 @@ async function conFallback<T>(action: () => Promise<T>, fallback: () => Promise<
   }
 }
 
-function validarTarea(task: TareaGenerada): TareaGenerada | null {
-  const pasos = (task.pasos ?? []).slice(0, 5).map((step) => ({
-    instruccion: step.instruccion?.trim() || '',
-    pictogramaId: PICTOGRAM_IDS.has(step.pictogramaId)
-      ? step.pictogramaId
-      : sugerirPictograma(step.instruccion || ''),
-  })).filter((step) => step.instruccion);
-  return pasos.length ? { etiqueta: task.etiqueta?.trim() || 'Tarea', pasos } : null;
-}
-
 export const servicioIAMlx: ServicioIA = {
   pictogramasAFrase(secuencia) {
-    return conFallback(async () => chatMlx([
-      { role: 'system', content: 'Convierte pictogramas en una frase natural y breve en español. Conserva todas las palabras, especialmente no, más, yo y quiero. Responde solo con la frase.' },
-      { role: 'user', content: secuencia.map(({ etiqueta }) => etiqueta).join(' | ') },
-    ], { temperature: 0.1 }), () => FALLBACK.pictogramasAFrase(secuencia));
+    return conFallback(async () => {
+      const raw = await chatMlx([
+        { role: 'system', content: PROMPT_COMUNICACION },
+        { role: 'user', content: JSON.stringify({ selected_symbols: secuencia.map(({ id, etiqueta }) => ({ id, concept: etiqueta })) }) },
+      ], { json: true, temperature: 0.1 });
+      return validarInterpretacion(parsearJsonMlx<Partial<InterpretacionComunicacion>>(raw), secuencia);
+    }, () => FALLBACK.pictogramasAFrase(secuencia));
   },
 
   fraseAPictogramas(texto) {
@@ -49,11 +44,11 @@ export const servicioIAMlx: ServicioIA = {
   descomponerTarea(texto) {
     return conFallback(async () => {
       const raw = await chatMlx([
-        { role: 'system', content: `Divide la tarea en 2 a 5 pasos breves. Devuelve solo JSON con {"etiqueta":"...","pasos":[{"instruccion":"...","pictogramaId":numero}]}. Usa IDs del catálogo. Si no encaja, usa ${PICTOGRAMA_POR_DEFECTO}.\n${CATALOGO}` },
+        { role: 'system', content: `Convierte la intención de un cuidador en una rutina visual para un niño. No reformules la petición ni escribas lo que el adulto quiere. Genera entre 2 y 6 acciones distintas, observables y ordenadas. Devuelve solo JSON con {"taskName":"...","steps":[{"action":"...","text":"...","queries":["..."]}]}. Cada text debe ser corto, literal y desde la perspectiva del niño cuando sea apropiado. Cada query debe describir la acción o el objeto que se debe buscar en un catálogo de pictogramas. No generes IDs. Catálogo disponible:\n${CATALOGO}` },
         { role: 'user', content: texto },
       ], { json: true });
-      const parsed = parsearJsonMlx<TareaGenerada>(raw);
-      return (parsed && validarTarea(parsed)) || FALLBACK.descomponerTarea(texto);
+      const parsed = parsearJsonMlx<PlanTarea>(raw);
+      return parsed?.steps?.length ? resolverPlan(parsed) : FALLBACK.descomponerTarea(texto);
     }, () => FALLBACK.descomponerTarea(texto));
   },
 
