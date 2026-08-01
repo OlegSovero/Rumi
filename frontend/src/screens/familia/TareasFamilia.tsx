@@ -15,7 +15,7 @@ import {
   reordenarTareas,
   type Tarea,
 } from '../../lib/db';
-import { servicioIA } from '../../ai/servicioIAMock';
+import { servicioIA } from '../../ai/servicioIA';
 import { TintesCategoria, type Tinte } from '../../theme';
 
 type PasoBorrador = { etiqueta: string; pictogramaId: number };

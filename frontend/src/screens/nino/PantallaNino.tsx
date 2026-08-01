@@ -19,7 +19,7 @@ import {
   type Tarea,
 } from '../../lib/db';
 import { registrarFrase, marcarTareaCompletada, obtenerTareas } from '../../lib/db';
-import { servicioIA } from '../../ai/servicioIAMock';
+import { servicioIA } from '../../ai/servicioIA';
 import { hablar } from '../../lib/voz';
 import { useConfiguracionStore } from '../../store/configuracion';
 import { TintesCategoria } from '../../theme';

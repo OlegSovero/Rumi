@@ -7,6 +7,8 @@ RUN npm ci
 FROM node:22-alpine AS builder
 
 WORKDIR /app/frontend
+ARG NEXT_PUBLIC_AI_MODE=mock
+ENV NEXT_PUBLIC_AI_MODE=$NEXT_PUBLIC_AI_MODE
 COPY --from=deps /app/frontend/node_modules ./node_modules
 COPY frontend ./
 RUN npm run build

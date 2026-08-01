@@ -10,6 +10,7 @@ env:
   REGION: us-central1
   SERVICE_NAME: rumi
   REPO_NAME: rumi-registry
+  RUNTIME_SERVICE_ACCOUNT: rumi-runtime@angelic-throne-502610-v3.iam.gserviceaccount.com
 
 permissions:
   contents: read
@@ -45,7 +46,11 @@ jobs:
         env:
           IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}
         run: |
-          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker build \
+            --build-arg NEXT_PUBLIC_AI_MODE=mock \
+            -t "$IMAGE:${{ github.sha }}" \
+            -t "$IMAGE:latest" \
+            .
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
@@ -58,12 +63,14 @@ jobs:
             --region "$REGION" \
             --platform managed \
             --project "$PROJECT_ID" \
+            --service-account "$RUNTIME_SERVICE_ACCOUNT" \
             --allow-unauthenticated \
             --port 8080 \
             --memory 512Mi \
             --cpu 1 \
             --min-instances 0 \
-            --max-instances 3
+            --max-instances 3 \
+            --set-env-vars "GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=$REGION,VERTEX_AI_MODEL=gemini-2.5-flash"
 
       - name: Show deployment URL
         run: |
