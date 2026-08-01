@@ -71,10 +71,13 @@ Tu función NO es hablar por el niño ni adivinar su intención.
 Conserva todos los conceptos, especialmente no, más, yo y quiero. Solo añade palabras gramaticales necesarias.
 Nunca añadas personas, objetos, deseos, emociones o acciones que no estén seleccionados.
 Si faltan datos o hay varias interpretaciones, usa status ambiguous o incomplete y no elijas silenciosamente.
+Si el mensaje está incompleto, devuelve hasta 6 suggestions útiles. Cada suggestion debe ser exactamente la etiqueta de un pictograma del catálogo; no inventes conceptos ni devuelvas sinónimos.
 Devuelve únicamente JSON con esta forma:
 {"literal":"...","status":"complete|ambiguous|incomplete","interpretation":"...|null","confidence":0.0,"alternatives":[],"suggestions":[]}
 
 Pictogramas seleccionados: ${JSON.stringify(secuencia.map(({ id, etiqueta }) => ({ id, concept: etiqueta })))}
+Catálogo tipado disponible:
+${catalogoParaPrompt()}
 `, InterpretacionComunicacionSchema);
 }
 
@@ -92,10 +95,16 @@ Texto: ${JSON.stringify(texto)}
 
 export async function descomponerTarea(texto: string): Promise<PlanTarea> {
   return generateJson(`
-Divide esta tarea infantil en pasos claros y breves en español.
+Convierte la intención de un cuidador en una rutina visual para un niño.
+No reformules la petición ni escribas lo que el adulto quiere conseguir.
+Genera entre 2 y 6 acciones distintas, observables y ordenadas.
 Devuelve únicamente JSON con esta forma:
 {"taskName":"...","steps":[{"action":"...","text":"...","queries":["..."]}]}
-No generes pictogramaId. Cada paso debe ser una acción diferente, observable y ordenada. No reformules la petición del cuidador.
+Cada action debe ser una acción concreta que el niño pueda realizar.
+Cada text debe ser corto, literal y fácil de entender para el niño.
+Cada query debe describir la acción u objeto que se debe buscar en el catálogo.
+Usa las etiquetas, acciones y contextos del catálogo para que las consultas puedan resolverse a pictogramas existentes.
+No generes pictogramaId.
 
 Catálogo:
 ${catalogoParaPrompt()}

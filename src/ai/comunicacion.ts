@@ -1,4 +1,4 @@
-import { PICTOGRAM_CATALOG } from '../data/pictogramCatalog';
+import { PICTOGRAM_CATALOG, catalogoParaPrompt } from '../data/pictogramCatalog';
 import type { EstadoInterpretacion, InterpretacionComunicacion } from './tipos';
 import { quitarAcentos } from './vocabulario';
 
@@ -21,6 +21,7 @@ function opcionesDelCatalogo(): Map<string, string> {
 }
 
 const OPCIONES_CATALOGO = opcionesDelCatalogo();
+const CATALOGO_COMUNICACION = catalogoParaPrompt();
 
 export function buscarPictograma(etiqueta: string) {
   const canonica = OPCIONES_CATALOGO.get(quitarAcentos(etiqueta.trim()));
@@ -91,15 +92,18 @@ export function validarInterpretacion(
 
   if (status === 'complete' && !interpretation) return { ...fallback, literal };
 
+  const alternatives = Array.isArray(raw.alternatives)
+    ? raw.alternatives.filter((alternative): alternative is string => typeof alternative === 'string').slice(0, 3)
+    : [];
+  const suggestions = sugerenciasValidas(raw.suggestions);
+
   return {
     literal,
     status: interpretation && status === 'complete' ? 'complete' : status,
     interpretation: status === 'complete' ? interpretation : null,
     confidence,
-    alternatives: Array.isArray(raw.alternatives)
-      ? raw.alternatives.filter((alternative): alternative is string => typeof alternative === 'string').slice(0, 3)
-      : [],
-    suggestions: sugerenciasValidas(raw.suggestions),
+    alternatives: alternatives.length || status !== 'ambiguous' ? alternatives : fallback.alternatives,
+    suggestions: suggestions.length || status !== 'incomplete' ? suggestions : fallback.suggestions,
   };
 }
 
@@ -112,5 +116,9 @@ Reglas:
 4. Si faltan datos o hay más de una interpretación razonable, no elijas una silenciosamente.
 5. Usa status complete solo cuando la frase sea suficientemente clara. Usa ambiguous para varias interpretaciones y incomplete cuando falte información.
 6. Las sugerencias deben ser conceptos breves que ayuden a continuar, no sustituyen una selección del niño.
-7. Devuelve únicamente JSON con esta forma:
-{"literal":"...","status":"complete|ambiguous|incomplete","interpretation":"...|null","confidence":0.0,"alternatives":[],"suggestions":[]}`;
+7. Si status es incomplete o ambiguous, devuelve hasta 6 suggestions útiles para continuar. Cada suggestion DEBE ser exactamente la etiqueta de un pictograma del catálogo. No inventes conceptos ni devuelvas sinónimos.
+8. Devuelve únicamente JSON con esta forma:
+{"literal":"...","status":"complete|ambiguous|incomplete","interpretation":"...|null","confidence":0.0,"alternatives":[],"suggestions":[]}
+
+Catálogo tipado disponible (id, etiqueta, sinónimos, acciones y contextos):
+${CATALOGO_COMUNICACION}`;
