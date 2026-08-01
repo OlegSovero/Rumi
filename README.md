@@ -180,14 +180,36 @@ GOOGLE_AI_MODEL=gemma-4-26b-a4b-it
 
 La API key debe configurarse como secreto en Cloud Run, no dentro de la imagen Docker ni del repositorio. Comprueba antes que el modelo elegido aparece disponible en Google AI Studio para esa key.
 
-El workflow espera un secreto de Secret Manager llamado `GOOGLE_API_KEY`. Créalo una vez en el proyecto de Google Cloud y concede acceso a la cuenta de servicio runtime de Cloud Run:
+El workflow de GitHub no crea ni modifica secretos. `GOOGLE_API_KEY` debe configurarse una sola vez por un administrador del proyecto antes del primer deploy. Ejecuta estos comandos con una cuenta que tenga permisos para habilitar APIs, crear secretos y administrar IAM, no con `github-deployer`:
 
 ```bash
-printf '%s' 'tu-api-key-de-google-ai-studio' | gcloud secrets create GOOGLE_API_KEY --data-file=-
+gcloud services enable secretmanager.googleapis.com \
+  --project TU_PROYECTO
+
+printf '%s' 'tu-api-key-de-google-ai-studio' | gcloud secrets create GOOGLE_API_KEY \
+  --data-file=- \
+  --project TU_PROYECTO
 gcloud secrets add-iam-policy-binding GOOGLE_API_KEY \
+  --project TU_PROYECTO \
   --member="serviceAccount:rumi-runtime@TU_PROYECTO.iam.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor"
 ```
+
+Comprueba que el secreto existe antes de hacer push a `dev`:
+
+```bash
+gcloud secrets describe GOOGLE_API_KEY --project TU_PROYECTO
+```
+
+Si necesitas cambiar la API key, añade manualmente una nueva versión:
+
+```bash
+printf '%s' 'nueva-api-key' | gcloud secrets versions add GOOGLE_API_KEY \
+  --data-file=- \
+  --project TU_PROYECTO
+```
+
+El deploy solo referencia `GOOGLE_API_KEY:latest` desde Cloud Run; la key nunca se introduce en la imagen Docker ni en los logs de GitHub.
 
 Google AI puede aplicar cuotas o cargos según el proyecto y el modelo. Configura límites y alertas en Google AI Studio/Google Cloud antes de activar producción. El panel de Rumi permite confirmar el proveedor y el modelo configurados, pero no reemplaza las alertas de facturación.
 

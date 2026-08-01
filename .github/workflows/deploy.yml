@@ -32,24 +32,6 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      - name: Sync Google AI key to Secret Manager
-        env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        run: |
-          if gcloud secrets describe GOOGLE_API_KEY --project "$PROJECT_ID" >/dev/null 2>&1; then
-            printf '%s' "$GOOGLE_API_KEY" | gcloud secrets versions add GOOGLE_API_KEY \
-              --data-file=- \
-              --project "$PROJECT_ID"
-          else
-            printf '%s' "$GOOGLE_API_KEY" | gcloud secrets create GOOGLE_API_KEY \
-              --data-file=- \
-              --project "$PROJECT_ID"
-          fi
-          gcloud secrets add-iam-policy-binding GOOGLE_API_KEY \
-            --project "$PROJECT_ID" \
-            --member="serviceAccount:$RUNTIME_SERVICE_ACCOUNT" \
-            --role="roles/secretmanager.secretAccessor"
-
       - name: Create Artifact Registry repository
         run: |
           gcloud artifacts repositories create "$REPO_NAME" \
