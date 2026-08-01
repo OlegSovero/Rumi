@@ -55,6 +55,26 @@ Si Ollama no está disponible, las operaciones de IA vuelven automáticamente al
 
 Para activar Vertex AI, usa `NEXT_PUBLIC_IA_PROVIDER=vertex` junto con `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION` y `VERTEX_AI_MODEL`.
 
+## Proveedores de IA
+
+Rumi puede cambiar entre los proveedores implementados mediante `NEXT_PUBLIC_IA_PROVIDER`. La selección se hace en tiempo de build; no se cambian credenciales desde el navegador. MLX está documentado como alternativa local pendiente de integrar.
+
+| Proveedor | Uso principal | Modelo de ejemplo | Runtime / endpoint | Requiere internet | Costo de inferencia | Configuración |
+| --- | --- | --- | --- | --- | --- | --- |
+| `mock` | Demo, CI y producción segura por defecto | Respuestas simuladas | Reglas locales | No | Sin costo de IA | `NEXT_PUBLIC_IA_PROVIDER=mock` |
+| `ollama` | Desarrollo local multiplataforma | `gemma4:e2b` | Ollama en `localhost:11434` | Solo para descargar el modelo | Sin costo de API; usa CPU/GPU local | `NEXT_PUBLIC_IA_PROVIDER=ollama` y `NEXT_PUBLIC_OLLAMA_MODEL=gemma4:e2b` |
+| `mlx` | Desarrollo local en Mac Apple Silicon | `mlx-community/gemma-4-e4b-it-4bit` | `mlx-vlm.server` en `localhost:11435` | Solo para descargar el modelo | Sin costo de API; consume recursos de tu Mac | Pendiente: `NEXT_PUBLIC_IA_PROVIDER=mlx` |
+| `vertex` | Cloud Run y producción | Model ID aprobado por Google, por ejemplo Gemma o Gemini | Vertex AI mediante `/api/ai` | Sí | Consume créditos o billing de GCP | `NEXT_PUBLIC_IA_PROVIDER=vertex` + variables server-side |
+
+### Recomendación
+
+- Usa `mock` para demos y despliegues mientras no quieras consumir IA.
+- Usa `mlx` en tu Mac si quieres probar Gemma 4 aprovechando Apple Silicon.
+- Usa `ollama` si necesitas una opción local más portable.
+- Usa `vertex` únicamente cuando tengas acceso aprobado al modelo y controles de billing configurados.
+
+MLX y Ollama son proveedores locales: no funcionan dentro de Cloud Run porque dependen de procesos que viven en tu computadora. Cloud Run usa `mock` o Vertex AI.
+
 ### Vertex AI Y Costos
 
 Las llamadas a Vertex AI ocurren únicamente en las API routes server-side de Next.js. Nunca se exponen credenciales al navegador.
