@@ -76,4 +76,4 @@ export const servicioIAMock: ServicioIA = {
   },
 };
 
-export const servicioIA = servicioIAMock;
+// El export canónico vive en ./index.ts (elige Ollama o mock).

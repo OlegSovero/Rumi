@@ -1,4 +1,6 @@
-import { WifiSlash } from '@phosphor-icons/react';
+import { CircleNotch, CloudCheck, WifiSlash } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
+import { comprobarOllama, type EstadoOllama } from '../../ai';
 import { Checkbox } from '../../components/Checkbox';
 import { EncouragementBanner } from '../../components/EncouragementBanner';
 import { Switch } from '../../components/Switch';
@@ -9,6 +11,22 @@ export function AjustesFamilia() {
   const showText = useConfiguracionStore((s) => s.showText);
   const lockBoards = useConfiguracionStore((s) => s.lockBoards);
   const establecer = useConfiguracionStore((s) => s.establecer);
+  const [estadoIA, setEstadoIA] = useState<EstadoOllama | null>(null);
+  const [comprobando, setComprobando] = useState(true);
+
+  useEffect(() => {
+    let vivo = true;
+    setComprobando(true);
+    comprobarOllama().then((estado) => {
+      if (vivo) {
+        setEstadoIA(estado);
+        setComprobando(false);
+      }
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   return (
     <div>
@@ -22,10 +40,20 @@ export function AjustesFamilia() {
         <Checkbox checked={lockBoards} onChange={(v) => establecer('lockBoards', v)} label="Bloquear cambios de tablero" />
       </div>
 
-      <div style={{ marginTop: 16 }}>
-        <EncouragementBanner tone="reward" icon={<WifiSlash size={22} color="#FFFFFF" weight="fill" />}>
-          Todo funciona sin conexión a un servidor propio.
-        </EncouragementBanner>
+      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {comprobando ? (
+          <EncouragementBanner tone="reward" icon={<CircleNotch size={22} color="#FFFFFF" weight="bold" />}>
+            Comprobando Gemma en Ollama…
+          </EncouragementBanner>
+        ) : estadoIA?.ok ? (
+          <EncouragementBanner tone="reward" icon={<CloudCheck size={22} color="#FFFFFF" weight="fill" />}>
+            {estadoIA.mensaje}
+          </EncouragementBanner>
+        ) : (
+          <EncouragementBanner tone="reward" icon={<WifiSlash size={22} color="#FFFFFF" weight="fill" />}>
+            {estadoIA?.mensaje ?? 'Sin conexión a Ollama. Se usará el modo simulado.'}
+          </EncouragementBanner>
+        )}
       </div>
     </div>
   );
