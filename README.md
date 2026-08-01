@@ -25,7 +25,16 @@ npm run start
 npm run lint
 ```
 
-Por defecto la IA usa un mock local. Para activar Vertex AI, crea `.env.local` con `NEXT_PUBLIC_AI_MODE=vertex`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION` y `VERTEX_AI_MODEL`.
+Por defecto la IA usa un mock local. Para usar Ollama con Gemma local durante el desarrollo, configura `.env.local` así:
+
+```env
+NEXT_PUBLIC_IA_PROVIDER=ollama
+NEXT_PUBLIC_OLLAMA_MODEL=gemma4:e2b
+```
+
+Ollama debe estar ejecutándose en `localhost:11434`. El proxy `src/app/api/ollama/` evita problemas de CORS y usa mock automáticamente si Ollama no responde.
+
+Para activar Vertex AI, usa `NEXT_PUBLIC_IA_PROVIDER=vertex` junto con `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION` y `VERTEX_AI_MODEL`.
 
 ## Créditos y licencias
 

@@ -1,5 +1,6 @@
 import type { ServicioIA, TareaGenerada } from './tipos';
 import { servicioIAMock } from './servicioIAMock';
+import { servicioIAOllama } from './servicioIAOllama';
 
 async function request<T>(body: Record<string, unknown>): Promise<T> {
   const response = await fetch('/api/ai', {
@@ -22,6 +23,10 @@ const servicioIAVertex: ServicioIA = {
   reformularPaso: (instruccion) => request<string>({ operation: 'reformularPaso', instruccion }),
 };
 
-export const servicioIA = process.env.NEXT_PUBLIC_AI_MODE === 'vertex'
+const provider = (process.env.NEXT_PUBLIC_IA_PROVIDER || process.env.NEXT_PUBLIC_AI_MODE || 'mock').toLowerCase();
+
+export const servicioIA = provider === 'vertex'
   ? servicioIAVertex
-  : servicioIAMock;
+  : provider === 'ollama'
+    ? servicioIAOllama
+    : servicioIAMock;
