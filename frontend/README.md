@@ -2,7 +2,7 @@
 
 Comunicador aumentativo y alternativo (CAA) con pictogramas para niños autistas no verbales. Digitaliza el método PECS y le da al niño una forma de comunicarse y de seguir sus rutinas con autonomía.
 
-Migrado de Vite a **Next.js** (App Router + TypeScript) para poder tener un mini backend propio (API routes, carpeta `src/app/api/`) dentro del mismo proyecto. La versión Vite original queda archivada en [`../frontend-vite`](../frontend-vite) como referencia — mismo diseño y lógica, este es el framework vigente.
+Construido en **Next.js** (App Router + TypeScript) en vez de Vite/CRA para poder tener un mini backend propio (API routes, carpeta `src/app/api/`) dentro del mismo proyecto.
 
 ## Cómo correrlo
 
