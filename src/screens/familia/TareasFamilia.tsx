@@ -1,4 +1,7 @@
-import { ArrowClockwise, CaretDown, CaretUp, Check, Sparkle, Smiley, Trash, X } from '@phosphor-icons/react';
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { ArrowClockwise, Check, DotsSixVertical, Sparkle, Smiley, Trash, X } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { EncouragementBanner } from '../../components/EncouragementBanner';
@@ -38,12 +41,18 @@ export function TareasFamilia({ childName }: Props) {
     cargar();
   }, []);
 
-  const mover = (id: string, direccion: -1 | 1) => {
-    const i = tareas.findIndex((t) => t.id === id);
-    const j = i + direccion;
-    if (i < 0 || j < 0 || j >= tareas.length) return;
-    const copia = [...tareas];
-    [copia[i], copia[j]] = [copia[j], copia[i]];
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const i = tareas.findIndex((t) => t.id === active.id);
+    const j = tareas.findIndex((t) => t.id === over.id);
+    if (i < 0 || j < 0) return;
+    const copia = arrayMove(tareas, i, j);
     setTareas(copia);
     reordenarTareas(copia.map((t) => t.id));
   };
@@ -143,33 +152,44 @@ export function TareasFamilia({ childName }: Props) {
       </EncouragementBanner>
 
       <div style={{ marginTop: 12 }}>
-        {tareas.map((t, i) => (
-          <div key={t.id} className="fila-familia-tarea">
-            <div className="reordenar">
-              <button disabled={i === 0} onClick={() => mover(t.id, -1)} className="boton-reordenar">
-                <CaretUp size={14} color="#B4AB99" weight="bold" />
-              </button>
-              <button disabled={i === tareas.length - 1} onClick={() => mover(t.id, 1)} className="boton-reordenar">
-                <CaretDown size={14} color="#B4AB99" weight="bold" />
-              </button>
-            </div>
-            <button className="icono-fila" style={{ background: TintesCategoria[t.tinte], flex: 'none' }} onClick={() => editar(t)}>
-              <Pictogram id={t.iconoId} label={t.etiqueta} size={42} />
-            </button>
-            <button style={{ flex: 1, textAlign: 'left' }} onClick={() => editar(t)}>
-              <div className="nombre-fila">{t.etiqueta}</div>
-              <div className="pasos-fila">{t.pasos.length} pasos</div>
-            </button>
-            <button onClick={() => eliminar(t.id)} aria-label="Eliminar tarea" className="boton-eliminar">
-              <Trash size={18} color="#E3B355" />
-            </button>
-          </div>
-        ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={tareas.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            {tareas.map((t) => (
+              <FilaTareaOrdenable key={t.id} tarea={t} onEditar={() => editar(t)} onEliminar={() => eliminar(t.id)} />
+            ))}
+          </SortableContext>
+        </DndContext>
 
         <Button variant="secondary" fullWidth onClick={empezarNueva}>
           + Añadir tarea
         </Button>
       </div>
+    </div>
+  );
+}
+
+function FilaTareaOrdenable({ tarea, onEditar, onEliminar }: { tarea: Tarea; onEditar: () => void; onEliminar: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tarea.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`fila-familia-tarea ${isDragging ? 'arrastrando' : ''}`}
+    >
+      <button className="handle-arrastrar" aria-label="Arrastrar para reordenar" {...attributes} {...listeners}>
+        <DotsSixVertical size={20} color="#B4AB99" weight="bold" />
+      </button>
+      <button className="icono-fila" style={{ background: TintesCategoria[tarea.tinte], flex: 'none' }} onClick={onEditar}>
+        <Pictogram id={tarea.iconoId} label={tarea.etiqueta} size={42} />
+      </button>
+      <button style={{ flex: 1, textAlign: 'left' }} onClick={onEditar}>
+        <div className="nombre-fila">{tarea.etiqueta}</div>
+        <div className="pasos-fila">{tarea.pasos.length} pasos</div>
+      </button>
+      <button onClick={onEliminar} aria-label="Eliminar tarea" className="boton-eliminar">
+        <Trash size={18} color="#E3B355" />
+      </button>
     </div>
   );
 }

@@ -20,6 +20,22 @@ function capitalizar(texto: string): string {
 const SEPARADOR_PASOS = /\s*(?:,|;| y luego | y | luego | despu[eé]s )\s*/i;
 const PALABRAS_VACIAS = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'a', 'que', 'y', 'en', 'su']);
 
+// Palabras sueltas que suenan más naturales como exclamación corta que como
+// oración plana con punto (p. ej. "¡Gracias!" en vez de "Gracias.").
+const PALABRAS_EXCLAMATIVAS = new Set(['gracias', 'ayuda', 'no']);
+
+// Simula lo que Gemma haría con la secuencia de pictogramas: no es un simple
+// join, arma una oración articulada (mayúscula inicial + puntuación).
+function articularFrase(etiquetas: string[]): string {
+  if (etiquetas.length === 0) return '';
+  if (etiquetas.length === 1) {
+    const palabra = capitalizar(etiquetas[0]);
+    return PALABRAS_EXCLAMATIVAS.has(quitarAcentos(etiquetas[0])) ? `¡${palabra}!` : `${palabra}.`;
+  }
+  const frase = capitalizar(etiquetas.join(' ').replace(/\s+/g, ' ').trim());
+  return /[.!?]$/.test(frase) ? frase : `${frase}.`;
+}
+
 function generarPasos(texto: string): TareaGenerada {
   const t = quitarAcentos(texto);
 
@@ -55,7 +71,8 @@ function generarPasos(texto: string): TareaGenerada {
 
 export const servicioIAMock: ServicioIA = {
   async pictogramasAFrase(secuencia) {
-    return esperar(secuencia.map((it) => it.etiqueta).join(' '), 200);
+    const etiquetas = secuencia.map((it) => it.etiqueta.trim()).filter(Boolean);
+    return esperar(articularFrase(etiquetas));
   },
 
   async fraseAPictogramas(texto) {

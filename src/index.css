@@ -860,9 +860,22 @@ button:disabled {
   width: 100%;
   text-align: left;
 }
-.reordenar { display: flex; flex-direction: column; gap: 2px; }
-.boton-reordenar { width: 26px; height: 22px; display: flex; align-items: center; justify-content: center; color: var(--taupe-400); }
-.boton-reordenar:disabled { opacity: 0.3; }
+.handle-arrastrar {
+  width: 28px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--taupe-400);
+  cursor: grab;
+  touch-action: none;
+}
+.handle-arrastrar:active { cursor: grabbing; }
+.fila-familia-tarea.arrastrando {
+  box-shadow: 0 8px 20px rgba(51, 47, 39, 0.14);
+  z-index: 1;
+}
 .icono-fila { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
 .nombre-fila { font-family: var(--font-display); font-size: 17px; color: var(--ink-900); }
 .pasos-fila { font-family: var(--font-body); font-size: 13px; color: var(--ink-600); }

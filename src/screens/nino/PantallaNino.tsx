@@ -32,7 +32,6 @@ export function PantallaNino() {
   const [vista, setVista] = useState<'hablar' | 'tareas'>('hablar');
   const [cat, setCat] = useState<string | null>(null);
   const [items, setItems] = useState<ItemFrase[]>([]);
-  const [premio, setPremio] = useState(false);
   const [premioTarea, setPremioTarea] = useState(false);
 
   const [conteoTableros, setConteoTableros] = useState<Record<string, number>>({});
@@ -57,10 +56,9 @@ export function PantallaNino() {
     (id: number, label: string) => {
       contadorClave += 1;
       setItems((prev) => [...prev, { key: `k${contadorClave}`, id, etiqueta: label }]);
-      if (readAloud) hablar(label);
       registrarUsoPictograma(id);
     },
-    [readAloud]
+    []
   );
 
   const onBorrarUltimo = () => setItems((prev) => prev.slice(0, -1));
@@ -70,7 +68,6 @@ export function PantallaNino() {
     const texto = await servicioIA.pictogramasAFrase(items);
     hablar(texto);
     registrarFrase(texto);
-    setPremio(true);
   };
 
   const tareaActiva = tareas.find((t) => t.id === tareaActivaId) ?? null;
@@ -186,18 +183,6 @@ export function PantallaNino() {
           </div>
         )}
       </div>
-
-      {premio && (
-        <RewardBloom
-          title="¡Muy bien!"
-          message="Lo dijiste tú."
-          onContinue={() => {
-            setPremio(false);
-            setItems([]);
-            setCat(null);
-          }}
-        />
-      )}
 
       {premioTarea && (
         <RewardBloom
